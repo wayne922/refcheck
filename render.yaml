@@ -22,3 +22,5 @@ services:
         sync: false
       - key: SENDGRID_FROM_EMAIL
         value: wayne@candidex.co.nz
+      - key: GEMINI_API_KEY
+        sync: false

@@ -4,7 +4,6 @@ import cors from "cors";
 import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import OpenAI from "openai";
 import { airtableService } from "./services/airtable.ts";
 import { serveStatic } from "./static.ts";
 import { emailService } from "./services/email.ts";
@@ -18,14 +17,12 @@ const app = express();
 const httpServer = createServer(app);
 const JWT_SECRET = process.env.JWT_SECRET || "default_refcheck_secret_key_123456";
 
-// OpenAI configuration
-const openaiApiKey = process.env.OPENAI_API_KEY;
-let openai: OpenAI | null = null;
-if (openaiApiKey) {
-  openai = new OpenAI({ apiKey: openaiApiKey });
-  console.log("[OpenAI Service] Client initialized successfully.");
+// Gemini configuration
+const geminiApiKey = process.env.GEMINI_API_KEY;
+if (geminiApiKey) {
+  console.log("[Gemini Service] API Key configured successfully.");
 } else {
-  console.warn("[OpenAI Service Warning] OPENAI_API_KEY is missing. Using local mock AI generation.");
+  console.warn("[Gemini Service Warning] GEMINI_API_KEY is missing. Using local mock AI generation.");
 }
 
 // Security & Parsing Middlewares
@@ -1379,7 +1376,7 @@ app.post("/api/questionnaire-templates/:id/duplicate", authMiddleware as any, re
   }
 });
 
-// OpenAI GPT-4o Question Generator endpoint (Sprint 2)
+// Gemini Question Generator endpoint (Sprint 2)
 app.post("/api/ai/generate-questions", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
   const { jobDescription, industry, questionCount = 10 } = req.body;
 
@@ -1387,9 +1384,9 @@ app.post("/api/ai/generate-questions", authMiddleware as any, requireRole(["Admi
     return res.status(400).json({ success: false, error: "Job description text is required" });
   }
 
-  // Fallback: If OpenAI API key is missing or calls fail, return structured mock questions
-  if (!openai) {
-    console.log("[OpenAI Mock Mode] Simulating question generation...");
+  // Fallback: If Gemini API key is missing or calls fail, return structured mock questions
+  if (!geminiApiKey) {
+    console.log("[Gemini Mock Mode] Simulating question generation...");
     const mockQuestions = [
       { id: "ai_q1", type: "rating", label: `Rate the candidate's core alignment with the ${industry || "General"} industry requirements described.`, description: "Technical capability rating", required: true, order: 1 },
       { id: "ai_q2", type: "long_text", label: "Describe a specific challenge from the job description that you saw this candidate solve.", description: "Problem-solving assessment", required: true, order: 2 },
@@ -1413,19 +1410,41 @@ interface Question {
   options?: string[]; // array of strings, ONLY for dropdown types
 }
 Ensure the questions cover child safety/regulatory compliance if it is an ECE/Healthcare role.
-Return ONLY the raw JSON array string. Do not wrap in markdown backticks \`\`\`json or output any preamble/explanations.`;
+Return ONLY the raw JSON array string.`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Job Description:\n${jobDescription}\nIndustry Context: ${industry || "General"}` }
-      ],
-      max_tokens: 1500,
-      temperature: 0.3
-    });
+    const promptText = `${systemPrompt}\n\nJob Description:\n${jobDescription}\nIndustry Context: ${industry || "General"}`;
 
-    let rawOutput = completion.choices[0]?.message?.content?.trim() || "[]";
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: promptText
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API error: ${response.status} - ${errText}`);
+    }
+
+    const data = await response.json();
+    let rawOutput = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "[]";
     
     // Sanitize output (remove markdown blocks if model ignored prompt instructions)
     if (rawOutput.startsWith("```")) {
@@ -1435,7 +1454,7 @@ Return ONLY the raw JSON array string. Do not wrap in markdown backticks \`\`\`j
     const questions = JSON.parse(rawOutput);
     return res.status(200).json({ success: true, questions });
   } catch (err: any) {
-    console.error("OpenAI generator error:", err);
+    console.error("Gemini generator error:", err);
     // Graceful fallback for API limits/timeouts
     return res.status(200).json({ 
       success: true, 
@@ -1443,7 +1462,7 @@ Return ONLY the raw JSON array string. Do not wrap in markdown backticks \`\`\`j
       questions: [
         { id: "err_q1", type: "rating", label: "Rate their technical delivery alignment.", description: "", required: true, order: 1 },
         { id: "err_q2", type: "long_text", label: "Briefly comment on their primary strengths.", description: "", required: true, order: 2 }
-      ] 
+      ]
     });
   }
 });
@@ -1595,3 +1614,5 @@ if (process.env.NODE_ENV !== "production") {
     process.exit(1);
   }
 })();
+
+// Trigger comment for reload verification v4

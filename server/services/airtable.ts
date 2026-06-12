@@ -9,7 +9,7 @@ const baseId = process.env.AIRTABLE_BASE_ID;
 let base: any = null;
 let isMock = true;
 
-if (apiKey && baseId) {
+if (apiKey && baseId && process.env.MOCK_MODE !== "true") {
   Airtable.configure({
     apiKey: apiKey,
   });

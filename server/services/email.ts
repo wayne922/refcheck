@@ -5,11 +5,11 @@ dotenv.config();
 const sendgridKey = process.env.SENDGRID_API_KEY;
 let isMock = true;
 
-if (sendgridKey) {
+if (sendgridKey && process.env.MOCK_MODE !== "true") {
   isMock = false;
   console.log("[Email Service] SendGrid integration loaded.");
 } else {
-  console.warn("[Email Service Warning] SENDGRID_API_KEY is missing. Using local console email simulation.");
+  console.warn("[Email Service Warning] SENDGRID_API_KEY is missing or MOCK_MODE is true. Using local console email simulation.");
 }
 
 export interface EmailPayload {

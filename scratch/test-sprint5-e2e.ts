@@ -1,7 +1,10 @@
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const BASE_URL = "http://localhost:5006";
-const CRON_SECRET = "default_cron_secret_123";
+const CRON_SECRET = process.env.CRON_SECRET || "default_cron_secret_123";
 
 async function runTest() {
   console.log("🚀 Starting Sprint 5 E2E API Verification Flow...\n");
