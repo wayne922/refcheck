@@ -1,0 +1,1725 @@
+
+--- PAGE 1 ---
+CONFIDENTIAL — For Developer Use Only
+Page 1
+RefCheck
+by Candidex
+Developer Handoff Document
+Sprint Plan · v2.0 · June 2026 · With Form Builder
+Prepared for
+Wayne Sullivan — Founder, Candidex
+Location
+New Zealand
+Sprints
+10 × 2-week sprints (20 weeks / ~5 months)
+Version
+2.0 — With Form Builder Sprint
+Date
+June 2026
+Classification
+Confidential — Development Team Only
+
+--- PAGE 2 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 2
+Table of Contents
+1.
+Executive Summary
+2.
+User Roles
+3.
+Airtable Schema
+      Full table definitions with field types
+4.
+Sprint Plan
+4.1
+Sprint 1 — Foundation & Auth
+4.2
+Sprint 2 — Questionnaire / Form Builder
+      NEW — unified builder for all 3 form types
+4.3
+Sprint 3 — Candidate & Referee Management
+4.4
+Sprint 4 — Referee Questionnaire Engine
+4.5
+Sprint 5 — Automation & Nudge Engine
+4.6
+Sprint 6 — Fraud Detection Layer
+4.7
+Sprint 7 — Reporting & Dashboard
+4.8
+Sprint 8 — White-Label & Branding
+4.9
+Sprint 9 — AI Features
+4.10
+Sprint 10 — FLOCC Integration & Webhooks
+5.
+Tech Stack Summary
+6.
+Deployment Notes
+      Render · GitHub · Environment Variables
+
+--- PAGE 3 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 3
+1. Executive Summary
+RefCheck is a purpose-built SaaS platform for automating the reference checking process for New Zealand
+and Australian recruitment agencies and employers. It replaces manual email chasing and PDF form
+distribution with a smart, mobile-first workflow: employers create a candidate record, the system tokenises
+and dispatches questionnaires to referees via email and SMS, referees complete a structured form on any
+device without logging in, and a consolidated report is generated automatically.
+The platform is scoped exclusively to reference checking — no background screening, no visa monitoring,
+no psychometric testing. It is designed from the ground up for the NZ/AU market, with a full-featured
+questionnaire and form builder that lets employers create, manage, and deploy all three form types
+(questionnaire, candidate form, referee form) from a single interface, pre-built question templates for
+regulated roles (ECE/childcare, healthcare, trades), fraud-detection heuristics appropriate for that
+regulatory context, and integration with FLOCC CRM as the initial third-party connector.
+This document is the full technical handoff for the development team. It covers the Airtable data schema, 10
+sprint plans with user stories, technical tasks, and acceptance criteria, plus deployment architecture on
+Render and GitHub. Sprint 2 — the Questionnaire and Form Builder — is the most strategically important
+sprint after the foundation: it delivers the full drag-and-drop builder UI, all 8 question types, conditional
+branching logic, risk flagging, an AI question generator, and 7 pre-built industry templates. Each sprint is
+two weeks in duration; the full product build is estimated at 20 weeks (~5 months) from kick-off to
+production launch.
+
+--- PAGE 4 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 4
+2. User Roles
+Employer / Recruiter
+ AUTHENTICATED
+  •  Creates candidate records and initiates reference check requests
+  •  Selects question templates and packages
+  •  Views live status of all checks — per candidate and per referee
+  •  Receives fraud flag alerts and turnaround delay notifications
+  •  Exports PDF reports for internal use or client delivery
+  •  Manages team members and role assignments
+Candidate
+ TOKENISED LINK — NO ACCOUNT
+  •  Receives a one-time tokenised email from the employer
+  •  Submits referee details via a mobile-friendly form (name, email, phone, relationship, employer, job title, dates)
+  •  Can add substitute referees if prompted
+  •  No platform account required — interaction is entirely link-based
+Referee
+ TOKENISED LINK — NO ACCOUNT
+  •  Receives a tokenised email + SMS with a direct link to their questionnaire
+  •  Completes a multi-step, mobile-optimised form (no login required)
+  •  Receives auto-nudge reminders if response is overdue
+  •  Responses are stored directly in Airtable on submission
+Admin
+ PLATFORM-LEVEL ACCESS
+  •  Full visibility across all employer accounts on the platform
+  •  Can manage employer subscriptions, user accounts, and templates
+  •  Access to platform-wide analytics and audit logs
+  •  Reserved for Wayne Sullivan's internal team (Candidex staff)
+
+--- PAGE 5 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 5
+3. Airtable Schema
+Full table definitions — all field names and types
+All data is stored in a single Airtable base. Tables below document every field, its type, and notes. Field
+names use camelCase matching the API SDK conventions. Linked records reference the target table name.
+Employers
+Field Name
+Field Type
+Notes
+employerId
+Formula
+Auto-generated record ID — primary key
+companyName
+Single line text
+Trading name of the employer / agency
+companyDomain
+URL
+e.g. acmerecruitment.co.nz — used in fraud detection
+planType
+Single select
+Options: Starter, Pro, Enterprise
+subscriptionStatus
+Single select
+Options: Active, Trial, Suspended, Cancelled
+logoUrl
+URL
+Uploaded logo — stored via attachment then CDN URL
+brandColour
+Single line text
+Hex code e.g. #2E7EBF
+brandedSenderName
+Single line text
+e.g. Acme Recruitment — used in email From field
+apiKey
+Single line text
+Generated API key for webhook integration
+webhookUrl
+URL
+Outbound webhook endpoint for check completion events
+googleSsoId
+Single line text
+Google OAuth sub claim — links to Users
+createdAt
+Date
+ISO 8601 with time
+users
+Linked record → Users
+All user accounts for this employer
+candidates
+Linked record →
+Candidates
+All candidates created by this employer
+Users
+Field Name
+Field Type
+Notes
+userId
+Formula
+Auto-generated
+fullName
+Single line text
+Display name
+email
+Email
+Login email — must match Google SSO email
+googleSsoId
+Single line text
+Google OAuth sub claim
+role
+Single select
+Options: Admin, Recruiter, Viewer
+employer
+Linked record →
+Employers
+Parent employer account
+isActive
+Checkbox
+Deactivated users cannot log in
+lastLoginAt
+Date
+Timestamp of last successful login
+createdAt
+Date
+Account creation timestamp
+inviteToken
+Single line text
+One-time token for invite-based onboarding
+
+--- PAGE 6 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 6
+Field Name
+Field Type
+Notes
+inviteAccepted
+Checkbox
+True once invite link is used
+Candidates
+Field Name
+Field Type
+Notes
+candidateId
+Formula
+Auto-generated
+fullName
+Single line text
+Candidate's legal name
+email
+Email
+Candidate contact email
+phone
+Phone number
+Mobile preferred — used for SMS fallback
+roleAppliedFor
+Single line text
+Job title being applied for
+employerName
+Single line text
+Hiring employer name (may differ from recruiter)
+employer
+Linked record →
+Employers
+Recruiter/agency who created this record
+assignedPackage
+Linked record → Check
+Packages
+Selected reference check package
+candidateToken
+Single line text
+Unique JWT-style token for candidate form link
+tokenExpiresAt
+Date
+Token expiry — 7 days from send
+candidateFormSubmitte
+dAt
+Date
+When candidate submitted referee details
+overallStatus
+Single select
+Not Started / Candidate Sent / Referees Submitted / In
+Progress / Complete / Flagged
+referees
+Linked record → Referees
+Referee records submitted by this candidate
+referenceRequests
+Linked record →
+Reference Requests
+createdAt
+Date
+Record creation timestamp
+createdBy
+Linked record → Users
+Recruiter user who created this candidate
+Reference Requests
+Field Name
+Field Type
+Notes
+requestId
+Formula
+Auto-generated
+candidate
+Linked record →
+Candidates
+employer
+Linked record →
+Employers
+assignedPackage
+Linked record → Check
+Packages
+status
+Single select
+Not Started / Candidate Sent / In Progress / Complete /
+Flagged / Cancelled
+candidateEmailSentAt
+Date
+When candidate invitation email was dispatched
+
+--- PAGE 7 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 7
+Field Name
+Field Type
+Notes
+completedAt
+Date
+When all referees submitted
+turnaroundHours
+Formula
+completedAt minus createdAt in hours
+fraudFlagCount
+Rollup
+Count of fraud flags across all referee responses
+riskScore
+Number
+0–100 AI-generated risk score (Sprint 9)
+createdAt
+Date
+notes
+Long text
+Internal recruiter notes
+Referees
+Field Name
+Field Type
+Notes
+refereeId
+Formula
+Auto-generated
+fullName
+Single line text
+Referee's full name
+email
+Email
+Referee contact email
+phone
+Phone number
+For SMS questionnaire link
+relationship
+Single select
+Manager / Director / Peer / Report / Client / Other
+employerName
+Single line text
+Referee's current/relevant employer
+employerDomain
+Single line text
+Derived from email — used in fraud detection
+jobTitle
+Single line text
+Referee's job title
+datesFrom
+Date
+Start of candidate's employment at referee's organisation
+datesTo
+Date
+End of employment — blank if current
+candidate
+Linked record →
+Candidates
+referenceRequest
+Linked record →
+Reference Requests
+refereeToken
+Single line text
+Unique token for referee questionnaire link
+tokenExpiresAt
+Date
+14 days from send
+emailSentAt
+Date
+smsSentAt
+Date
+formOpenedAt
+Date
+First time referee opened the link
+formCompletedAt
+Date
+Submission timestamp
+formStatus
+Single select
+Not Sent / Sent / Opened / In Progress / Complete /
+Substituted
+submissionDurationSec
+onds
+Number
+Time from first open to submission — fraud check
+submissionIpAddress
+Single line text
+Referee IP on submit — fraud check
+nudge1SentAt
+Date
+Day 2 nudge timestamp
+nudge2SentAt
+Date
+Day 4 nudge timestamp
+
+--- PAGE 8 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 8
+Field Name
+Field Type
+Notes
+isSubstitute
+Checkbox
+True if added as replacement
+substituteFor
+Linked record → Referees
+Points to original referee if substitute
+responses
+Linked record → Referee
+Responses
+Referee Responses
+Field Name
+Field Type
+Notes
+responseId
+Formula
+Auto-generated
+referee
+Linked record → Referees
+referenceRequest
+Linked record →
+Reference Requests
+questionTemplate
+Linked record → Question
+Templates
+answersJson
+Long text
+Full JSON of question-answer pairs
+overallRating
+Number
+Computed average of all rating questions (1–5)
+wordCountTotal
+Number
+Total words across all open-text answers — fraud check
+aiSummaryJson
+Long text
+GPT-4o structured summary per competency (Sprint 9)
+fraudFlags
+Multiple select
+Shared IP / Personal Email Domain / Domain Mismatch /
+Short Response / Fast Completion / Tone Anomaly /
+Copy-Paste Detected
+fraudFlagDetails
+Long text
+Human-readable explanation of each flag triggered
+submittedAt
+Date
+ipAddress
+Single line text
+IP at submission time
+Question Templates
+Field Name
+Field Type
+Notes
+templateId
+Formula
+Auto-generated
+templateName
+Single line text
+e.g. General Professional, Childcare/ECE
+description
+Long text
+Internal description of template purpose
+isSystemTemplate
+Checkbox
+True for NZ pre-built templates — not editable by
+employer
+employer
+Linked record →
+Employers
+Null for system templates; set for custom
+questions
+Long text
+JSON array of question objects (see structure below)
+questionCount
+Formula
+Count of questions in JSON
+createdAt
+Date
+updatedAt
+Date
+
+--- PAGE 9 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 9
+Check Packages
+Field Name
+Field Type
+Notes
+packageId
+Formula
+Auto-generated
+packageName
+Single line text
+e.g. Standard 2-Referee, Executive 3-Referee
+refereeCount
+Number
+Required number of referees
+questionTemplate
+Linked record → Question
+Templates
+Template assigned to this package
+employer
+Linked record →
+Employers
+Null for system packages
+isSystemPackage
+Checkbox
+description
+Long text
+Internal notes
+createdAt
+Date
+Question JSON structure (stored in questions field of Question Templates):
+{ "id": "q1", "type": "rating", "text": "Rate their communication skills.", "required": true,
+"min": 1, "max": 5 }
+Question types: short_text | long_text | rating | yes_no | dropdown
+
+--- PAGE 10 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 10
+4. Sprint Plan
+10 × 2-week sprints · 20 weeks total
+Each sprint is two calendar weeks. Sprints should be run sequentially — later sprints have hard
+dependencies on earlier ones. Effort ratings: S = 1–3 days, M = 3–5 days, L = 1–1.5 weeks, XL = 2 full weeks.
+SPRINT
+1
+Foundation & Auth
+XL
+GOAL
+Establish the full technical skeleton: Airtable base, Node.js API on Render, React app scaffold, Google SSO
+login, JWT session management, and employer registration flow. By end of sprint, an employer can sign in
+and see an empty dashboard.
+USER STORIES
+→  As a Employer, I want to sign in with my Google account so that I don't have to manage a separate
+password.
+→  As a Employer, I want to register my company on the platform so that I can start creating candidate
+records.
+→  As a Admin, I want to invite employers by email or let them self-register so that I control onboarding mode.
+TECHNICAL TASKS
+•  Airtable base setup
+    o  Create base with all 8 tables defined in Section 3
+    o  Set field types, select options, and linked record connections exactly as specified
+    o  Create a view per table: Grid view (default), filtered view by status
+    o  Generate and store Airtable Personal Access Token in Render environment
+•  Node.js project scaffold on Render
+    o  Initialise Express app with dotenv, cors, helmet, express-rate-limit
+    o  Install airtable SDK (npm install airtable)
+    o  Directory structure: /routes, /controllers, /middleware, /services/airtable.js, /services/auth.js
+    o  Health check endpoint: GET /api/health → 200 OK
+    o  Error handling middleware with structured JSON errors
+    o  Connect to Render as a Web Service — auto-deploy from main branch
+•  Google SSO
+    o  Register OAuth 2.0 client in Google Cloud Console
+    o  Scopes: openid, email, profile
+    o  Callback URL: https://{render-service}.onrender.com/auth/google/callback
+    o  POST /auth/google — receives id_token, verifies with Google, returns JWT
+    o  On first login: create User + Employer records in Airtable
+    o  Store googleSsoId in Users table for subsequent lookups
+•  JWT session tokens
+    o  Sign JWT with HS256 using JWT_SECRET env var
+    o  Payload: { userId, employerId, role, exp: 24h }
+    o  Middleware: authMiddleware.js — verifies token on every protected route
+    o  Refresh token endpoint: POST /auth/refresh
+•  React app scaffold
+    o  Create React app with Vite + TypeScript
+
+--- PAGE 11 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 11
+    o  Install: react-router-dom, axios, tailwindcss, @headlessui/react
+    o  Routes: /login, /dashboard, /candidates, /templates (placeholder)
+    o  Protected route wrapper — redirects to /login if no valid token
+    o  Store JWT in httpOnly cookie (not localStorage)
+    o  Deploy React build to Render Static Site or Netlify
+•  Employer registration flow
+    o  Invite-only mode: Admin creates invite token → emails link → employer clicks → Google SSO → completes
+registration form
+    o  Self-serve mode: Google SSO → first-time users see registration form (companyName, domain) → Employer
+record created
+    o  Toggle between modes via REGISTRATION_MODE env var (invite | open)
+    o  POST /employers — creates employer record in Airtable
+•  Empty dashboard: fetches employer record and displays company name, plan type — no candidate
+data yet
+ACCEPTANCE CRITERIA
+[v]  Employer visits /login, clicks 'Sign in with Google', completes OAuth flow
+[v]  On first login: employer registration form is presented; on subsequent logins: redirected to dashboard
+[v]  Dashboard loads with employer name displayed — no errors
+[v]  GET /api/health returns 200 from Render deployment
+[v]  JWT is stored in httpOnly cookie and verified on all API calls
+[v]  Airtable base has all 8 tables with correct field types
+Estimated Effort: EXTRA LARGE (XL)
+Dev note: This sprint has the most setup overhead. Airtable schema decisions here affect every subsequent sprint —
+get sign-off before proceeding.
+
+--- PAGE 12 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 12
+SPRINT
+2
+Questionnaire / Form Builder
+XL
+GOAL
+Build the unified form builder that lets employers create, manage, and deploy three interconnected form
+types from a single interface: the Questionnaire (referee-facing questions), the Candidate Form (referee
+nomination and consent), and the Referee Form (the rendered questionnaire per referee). The builder
+supports 8 question types, per-question conditional logic, risk flagging, block-on-condition rules,
+drag-and-drop reordering, a 7-template pre-built library, and an AI question generator powered by GPT-4o.
+This is the most important sprint after the foundation — everything else in the product depends on
+questionnaires existing before they can be deployed.
+FORM TYPES
+•  Questionnaire — The set of questions referees answer. The core of every reference check.
+•  Candidate Form — What the candidate fills in before referees are contacted: referee nomination,
+consent, relationship details.
+•  Referee Form — The referee-facing version of the questionnaire, adapted per conditional logic and
+branching rules.
+QUESTION TYPES (8)
+Type
+UI Control
+Use Case
+short_text
+Single-line input
+Name, company, role
+long_text
+Multi-line textarea
+Open feedback, explain your answer
+rating
+1-5 or 1-10 star/number picker
+Rate candidate performance
+yes_no
+Toggle or radio
+Would you rehire this person?
+multiple_choice
+Checkbox list (multi-select)
+Select all that apply
+single_select
+Radio button list
+Best describes...
+dropdown
+Select menu
+Country, department
+section_heading
+Non-question divider
+Groups questions into sections
+PER-QUESTION SETTINGS
+•  Label — The question text displayed to the referee.
+•  Description — Optional helper text shown beneath the label.
+•  Required / Optional — Toggle — prevents form submission if blank when required.
+•  Character limit — For text fields: min and max character count.
+•  Risk flag rule — If answer matches condition, auto-flag for employer review.
+•  Branching rule — If answer matches condition, show or hide another question.
+•  Block rule — If answer matches condition, block referee submission with a custom message.
+CONDITIONAL LOGIC / BRANCHING ENGINE
+Each question can have one or more if/then rules. Rule format: IF [question X] [operator] [value]
+THEN [action] [target]. Operators: equals, does not equal, contains, is greater than, is
+less than. Actions: show question, hide question, flag as risk, block submission.
+•  Rules are evaluated client-side in real time as referees fill in the form
+
+--- PAGE 13 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 13
+•  Visual flow map: employer sees a node-based diagram of branching logic before deploying
+•  Stored in Airtable as JSON in a Branching_Rules_JSON Long Text field on Questionnaire_Templates
+•  Block-on-condition rule type stops referee submitting and shows a customisable message
+•  Example block rule: if 'Were you this person's direct manager?' = No — show 'This check requires a
+direct manager reference. Please contact [employer] to update your referee.'
+RISK FLAGGING
+•  Each question can define a risk condition — e.g. Yes/No: if answer = No on 'Would you rehire?' →
+auto-flag
+•  Flagged responses are highlighted in the employer dashboard with a risk badge per candidate report
+•  Flags do not stop submission (unless a Block Rule is also set)
+•  Risk severity levels: High and Medium, configured per rule
+BUILDER UI/UX (REACT)
+•  Drag-and-drop question reordering — react-beautiful-dnd or dnd-kit
+•  Left sidebar: question type palette — drag question types onto the canvas
+•  Main canvas: ordered list of questions, each expandable to show full settings
+•  Right panel: settings for the selected question (label, description, required, risk rules, branching)
+•  Top toolbar: form title, preview button, save button, publish/deploy button
+•  Preview mode: shows the exact referee-facing form before deploying, including conditional logic
+•  Auto-save every 30 seconds and on any field change
+•  Visual flow view: toggle to see node diagram of all branching rules
+•  Mobile-responsive builder layout for tablet use
+PRE-BUILT TEMPLATE LIBRARY (7 TEMPLATES)
+Template
+Questions
+Focus
+General Professional
+12
+questions
+Standard reference check, suitable for any professional role
+Senior / Executive
+15
+questions
+Leadership focus, board-level and C-suite roles
+Early Childhood / ECE
+14
+questions
+NZ childcare sector, working with children focus
+Healthcare
+13
+questions
+Clinical environment, patient safety focus
+Trades / Construction
+12
+questions
+Physical safety, site compliance, productivity
+Sales / Business Development
+12
+questions
+Targets, client relationship, pipeline management
+Technology / Engineering
+12
+questions
+Technical problem-solving, team collaboration
+AI QUESTION GENERATOR
+Employer pastes a job description into a text area and clicks Generate Questions. The Node.js backend
+calls OpenAI GPT-4o with a structured prompt and returns 10–15 suggested questions with question types
+pre-assigned. The employer can accept all, edit individual questions, or discard. Questions are inserted into
+the current questionnaire being edited.
+
+--- PAGE 14 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 14
+•  POST /ai/generate-questions — accepts { jobDescription: string, industry?: string, questionCount?:
+number }
+•  System prompt: expert NZ HR consultant, structured reference questionnaire, question types
+pre-assigned, return valid JSON array
+•  Return: JSON array of question objects matching Questionnaire_Templates schema
+•  UI: JD textarea modal with Generate button — on submit shows generated questions for review/edit
+•  Must complete in under 10 seconds (use gpt-4o with max_tokens constraint)
+•  Retry logic: max 3 retries with exponential backoff on OpenAI timeout
+AIRTABLE SCHEMA — FORM BUILDER TABLES
+Two new tables are added to the Airtable base for the Form Builder sprint:
+Questionnaire_Templates
+Field Name
+Field Type
+Notes
+Name
+Single line text
+Template display name
+Description
+Long text
+Internal description of template purpose
+Industry
+Single select
+General | ECE | Healthcare | Trades | Technology | Sales |
+Executive
+Is_System_Template
+Checkbox
+Pre-built vs custom employer template
+Created_By
+Link to Users
+Null for system templates
+Created_At
+Date
+ISO 8601
+Status
+Single select
+Draft | Active | Archived
+Questions_JSON
+Long text
+Full question array as JSON — see structure below
+Branching_Rules_JSON
+Long text
+All if/then rules as JSON
+Usage_Count
+Rollup from
+Reference_Requests
+How many checks use this template
+Question JSON structure (stored in Questions_JSON field):
+{ "id": "q_001", "type": "yes_no", "label": "Would you rehire this person?",
+"description": "Consider overall performance and conduct.",
+"required": true, "order": 1,
+"risk_rule": { "condition": "equals", "value": "no", "action": "flag", "severity": "high" },
+"branch_rules": [{ "condition": "equals", "value": "no", "action": "show", "target_question_id":
+"q_002" }],
+"block_rule": null }
+TECHNICAL TASKS
+•  Airtable base additions
+    o  Create Questionnaire_Templates table with all fields as specified above
+    o  Add Branching_Rules_JSON (Long text) field to Questionnaire_Templates
+    o  Seed all 7 pre-built templates with full question sets and mark Is_System_Template = true
+    o  Update existing Question Templates table (Section 3) to reference Questionnaire_Templates where needed
+•  Form Builder API (Node.js)
+    o  GET /questionnaire-templates — returns system templates + employer custom templates
+    o  POST /questionnaire-templates — create new template (Is_System_Template = false)
+    o  GET /questionnaire-templates/:id — full template with Questions_JSON and Branching_Rules_JSON parsed
+
+--- PAGE 15 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 15
+    o  PATCH /questionnaire-templates/:id — update name, description, Questions_JSON, Branching_Rules_JSON
+    o  DELETE /questionnaire-templates/:id — soft delete (add Deleted_At field) for custom templates only
+    o  POST /questionnaire-templates/:id/duplicate — clone a system template as a custom base
+•  AI Question Generator endpoint
+    o  POST /ai/generate-questions — accepts { jobDescription, industry, questionCount }
+    o  npm install openai — OPENAI_API_KEY stored as Render environment variable
+    o  System prompt engineering: NZ HR expert, structured reference check format, return JSON array
+    o  Returns 10–15 questions with types pre-assigned in under 10 seconds
+    o  Error handling: graceful fallback if OpenAI unavailable — show 'AI temporarily unavailable'
+•  Builder UI — React components
+    o  npm install @dnd-kit/core @dnd-kit/sortable (or react-beautiful-dnd) for drag-and-drop
+    o  QuestionTypePalette component — left sidebar with 8 draggable question type tiles
+    o  QuestionCanvas component — sortable list of question cards, each expandable to show full settings panel
+    o  QuestionSettingsPanel component — right panel: label, description, required toggle, char limits, risk rule editor,
+branching rule editor
+    o  FormBuilderToolbar component — title field, Preview/Save/Publish buttons, AI Generate button
+    o  BranchingRuleEditor — IF/THEN form UI per question rule (operator, value, action, target)
+    o  RiskRuleEditor — condition, severity (High/Medium), inline configuration
+    o  BlockRuleEditor — condition + custom message textarea
+    o  Auto-save: PATCH /questionnaire-templates/:id fires every 30 seconds and on any field blur
+•  Preview mode
+    o  Renders the exact referee experience with all 8 question types functional
+    o  Conditional logic fires in preview — showing/hiding questions per branching rules
+    o  Block rules display custom message and disable submit button in preview
+    o  Mobile-responsive layout — test on iOS Safari and Android Chrome
+•  Visual flow view
+    o  Toggle in toolbar switches between question list view and node diagram view
+    o  Node diagram: each question is a node; branching rules draw directed edges between nodes
+    o  Use React Flow (reactflow npm) for the node-based diagram
+    o  Nodes colour-coded: standard (blue), risk-flagged (amber), block-on-condition (red)
+•  Candidate Form builder tab
+    o  Separate tab within the builder for the Candidate Form (referee nomination form)
+    o  Fixed fields (name, email, phone, relationship, employer, job title, dates) are always present
+    o  Employer can add custom fields or a consent statement
+    o  Preview tab shows the candidate-facing form
+•  Template library UI
+    o  Template list page: shows system templates (lock icon) and custom templates (edit/delete/duplicate actions)
+    o  System templates show industry tag and question count
+    o  Employer can duplicate a system template to use as a custom base
+    o  'Start from scratch' option creates an empty questionnaire
+USER STORIES
+→  As a employer, I want to create a questionnaire from scratch so that I can ask referees the exact questions
+relevant to this role.
+→  As a employer, I want to start from a pre-built template so that I don't have to build every questionnaire
+from zero.
+→  As a employer, I want to paste a job description and have AI generate relevant questions so that I save time
+on questionnaire setup.
+→  As a employer, I want to drag and drop questions to reorder them so that the flow makes sense for
+referees.
+
+--- PAGE 16 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 16
+→  As a employer, I want to set branching rules so the questionnaire adapts based on referee answers so that
+referees only see relevant questions.
+→  As a employer, I want to flag risky answers automatically so that I don't have to manually review every
+response.
+→  As a employer, I want to preview the questionnaire before sending so that I know exactly what referees will
+see.
+→  As a referee, I want to complete a mobile-friendly form that adapts based on my answers so that I only see
+relevant questions.
+→  As a referee, I want to have my progress auto-saved so that I don't lose work if I close the browser.
+ACCEPTANCE CRITERIA
+[v]  Employer can create a questionnaire with all 8 question types
+[v]  Branching rules fire correctly in preview mode — questions show/hide per logic
+[v]  Risk flags appear on the employer dashboard after referee submits with a flagged answer
+[v]  Block-on-condition stops referee submitting and shows the custom employer-configured message
+[v]  AI question generator returns questions from a JD in under 10 seconds
+[v]  All 7 pre-built templates are available, selectable, and usable as a starting point
+[v]  Drag-and-drop reordering works on desktop and tablet
+[v]  Auto-save fires every 30 seconds and on any field change — no data lost on accidental close
+[v]  Preview mode shows exact referee experience including conditional branching logic
+[v]  Visual flow diagram accurately reflects all branching rules defined in the builder
+[v]  System templates are visible but cannot be edited or deleted by employers
+[v]  Employer can duplicate a system template and customise the copy
+Estimated Effort: EXTRA LARGE (XL)
+Dev note: This is the largest and most technically complex sprint after Sprint 1. Two developers working in parallel is
+strongly recommended: one on the React builder UI (drag-and-drop, settings panels, visual flow), one on the API,
+Airtable schema, and AI endpoint. Branching logic must be thoroughly tested before Sprint 4 (Referee Questionnaire
+Engine) begins, as Sprint 4 depends on rendering these rules in the live referee form.
+
+--- PAGE 17 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 17
+SPRINT
+3
+Candidate & Referee Management
+L
+GOAL
+Employer can create a candidate record, assign a reference check package, and trigger a tokenised email
+to the candidate. Candidate opens a mobile-friendly form and submits their referee details. Referee records
+land in Airtable.
+USER STORIES
+→  As a Employer, I want to create a candidate record with their details and the role they're applying for so
+that I can track each reference check separately.
+→  As a Employer, I want to assign a check package to each candidate so that I control how many referees are
+required and which questions are asked.
+→  As a Candidate, I want to receive a personalised email with a secure link so that I can submit my referees'
+details from my phone without creating an account.
+→  As a Employer, I want to see referee records appear in my dashboard once the candidate submits so that I
+know the check is progressing.
+TECHNICAL TASKS
+•  Candidate management API
+    o  POST /candidates — create candidate record (name, email, phone, roleAppliedFor, employerName,
+assignedPackage)
+    o  GET /candidates — list all candidates for employer, with status filter
+    o  GET /candidates/:id — single candidate with linked referee records
+    o  PATCH /candidates/:id — update status, notes
+•  Check package seed data
+    o  Create system packages in Airtable: Standard 2-Referee, Standard 3-Referee, Executive 3-Referee, Childcare
+Role
+    o  Each package linked to a Question Template (placeholder templates at this stage)
+    o  GET /packages — returns available packages for employer
+•  Candidate token generation + email
+    o  On POST /candidates: generate candidateToken (JWT, 7-day expiry) → store in Airtable
+    o  POST /email/candidate-invite — SendGrid template: personalised email with candidate token link
+    o  Candidate link: https://app.refcheck.nz/c/{candidateToken}
+    o  Record candidateEmailSentAt in Airtable
+    o  Update candidate overallStatus to 'Candidate Sent'
+•  Candidate form (React)
+    o  Route: /c/:token — public, no login required
+    o  On load: GET /candidates/by-token/:token — validates token, returns candidateName, roleAppliedFor,
+employerBranding
+    o  Multi-step form (Step 1: welcome/instructions, Step 2: referee 1 details, Step 3: referee 2 details, etc.)
+    o  Fields per referee: fullName, email, phone, relationship (dropdown), employerName, jobTitle, datesFrom,
+datesTo
+    o  Mobile-first layout (single-column, large touch targets, tel input type for phone)
+    o  POST /candidates/:id/referees on submit
+•  Referee record creation
+    o  Create Referee record in Airtable for each submitted referee
+    o  Generate refereeToken (JWT, 14-day expiry) — do NOT send yet (Sprint 3)
+    o  Link referee to candidate and reference request
+
+--- PAGE 18 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 18
+    o  Update candidateFormSubmittedAt and overallStatus to 'Referees Submitted'
+    o  Notify employer: POST /notifications/employer — email via SendGrid
+ACCEPTANCE CRITERIA
+[v]  Employer creates a candidate via dashboard form — record appears in Airtable
+[v]  Candidate receives email within 60 seconds of creation
+[v]  Candidate token link opens a mobile-friendly form (test on iOS Safari and Android Chrome)
+[v]  Candidate submits 2 referee records — Referee records created in Airtable
+[v]  Employer dashboard shows candidate status updated to 'Referees Submitted'
+[v]  Employer receives email notification of candidate submission
+Estimated Effort: LARGE (L)
+
+--- PAGE 19 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 19
+SPRINT
+4
+Referee Questionnaire Engine
+XL
+GOAL
+System sends tokenised email and SMS to each referee. Referee opens a multi-step form on mobile,
+answers questions pulled from the assigned template (ratings, yes/no, open text), and submits. Responses
+land in Airtable. Employer is notified on completion.
+USER STORIES
+→  As a Referee, I want to receive a clear email and SMS with a direct link to my questionnaire so that I can
+complete it quickly on my phone without creating an account.
+→  As a Referee, I want to complete the questionnaire in stages with my progress saved automatically so that I
+can start and come back if interrupted.
+→  As a Employer, I want to be notified when each referee completes their questionnaire so that I can track
+progress in real time.
+→  As a Employer, I want to see each referee's status on the candidate dashboard so that I know who has and
+hasn't responded.
+TECHNICAL TASKS
+•  Referee dispatch service
+    o  Trigger: when candidateFormSubmittedAt is set → dispatch to all referees
+    o  POST /referees/:id/dispatch — sends email + SMS
+    o  Email: SendGrid transactional template — includes referee name, candidate name, role, token link
+    o  SMS: Twilio REST API — short message with link only (160 char limit)
+    o  Record emailSentAt and smsSentAt on Referee record
+    o  Update formStatus to 'Sent'
+•  Referee questionnaire form (React)
+    o  Route: /r/:token — public, no login
+    o  On load: GET /referees/by-token/:token — validates, returns candidate info + question template
+    o  Multi-step form: Step 1 (confirmation screen with candidate name/role), then one section per question group
+    o  Question rendering by type: rating (star/number selector), yes_no (toggle), short_text (input), long_text
+(textarea), dropdown (select)
+    o  Auto-save: PATCH /referees/:id/response every 30 seconds with partial answersJson
+    o  Progress bar showing % complete
+    o  Final confirmation screen on submit
+    o  Record formOpenedAt on first GET, submissionDurationSeconds and formCompletedAt on POST
+•  Question template seed data (Sprint 3 detail)
+    o  Create 4 NZ pre-built templates with real questions:
+    o  General Professional (12 questions: employment dates, role description, 5× rating, 3× open text, rehire yes/no,
+overall rating)
+    o  Childcare/ECE (15 questions: child safety competencies, regulatory compliance, patience rating, scenario
+responses)
+    o  Healthcare (14 questions: clinical standards, teamwork, patient care, regulatory, reliability)
+    o  Trades (12 questions: skills, safety, punctuality, quality of work, productivity rating)
+•  Response storage
+    o  POST /referees/:id/response — upsert Referee Response record
+    o  Store full answersJson, compute overallRating (average of all rating questions)
+    o  Compute wordCountTotal across all long_text and short_text answers
+    o  Update formStatus to 'Complete'
+
+--- PAGE 20 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 20
+    o  Update candidate overallStatus: if all referees complete → 'Complete', else 'In Progress'
+•  Employer completion notification
+    o  On referee response submit: POST /notifications/employer
+    o  Email: '[Referee Name] has completed their reference for [Candidate Name]'
+    o  If all referees complete: 'Reference check for [Candidate Name] is now complete'
+ACCEPTANCE CRITERIA
+[v]  Referee receives email and SMS within 2 minutes of candidate form submission
+[v]  Referee token link opens questionnaire showing candidate name and role
+[v]  All 4 question types render correctly and accept input on mobile
+[v]  Partial responses are saved automatically every 30 seconds
+[v]  On submit: Referee Response record created in Airtable with full answersJson
+[v]  Employer receives email notification on referee completion
+[v]  Candidate overallStatus updates to 'In Progress' or 'Complete' correctly
+Estimated Effort: EXTRA LARGE (XL)
+Dev note: The questionnaire form is the most user-facing component — test rigorously on iOS Safari. Auto-save is
+critical UX for mobile users.
+
+--- PAGE 21 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 21
+SPRINT
+5
+Automation & Nudge Engine
+L
+GOAL
+Implement time-based nudge automation: Day 2 email if not opened, Day 4 email if opened but not
+complete, Day 6 employer alert. Add substitute referee flow allowing candidates to add a replacement via
+their token link. Employer can manually resend or reassign.
+USER STORIES
+→  As a Referee, I want to receive a friendly reminder if I haven't completed my questionnaire so that I don't
+miss an important deadline.
+→  As a Employer, I want to be alerted when a referee hasn't responded after 6 days so that I can take action
+before the check stalls.
+→  As a Candidate, I want to be given the option to provide a substitute referee if one is unavailable so that the
+reference check can still be completed.
+→  As a Employer, I want to manually trigger a resend or reassign a referee from the dashboard so that I have
+control over stalled checks.
+TECHNICAL TASKS
+•  Scheduled job runner
+    o  Use node-cron or Render Cron Job (preferred for reliability) — runs every 6 hours
+    o  Cron endpoint: POST /cron/nudge-check (protected with CRON_SECRET header)
+    o  Query Airtable for all referees where formStatus IN ('Sent', 'Opened') and NOT complete
+    o  Calculate days since emailSentAt
+•  Nudge logic
+    o  Day 2: formStatus = 'Sent' (formOpenedAt is null) → send nudge email + SMS → record nudge1SentAt
+    o  Day 4: formStatus = 'Opened' (started but not submitted) → send nudge email → record nudge2SentAt
+    o  Day 6: still incomplete → do NOT nudge referee again → send employer alert email
+    o  Nudge emails use SendGrid template distinct from original invite (warmer, shorter copy)
+    o  Only send each nudge once (check nudge1SentAt / nudge2SentAt before sending)
+•  Employer delay alert
+    o  Day 6 alert email to employer: '[Referee Name] has not responded — consider adding a substitute'
+    o  Dashboard: show 'Overdue' badge on referee cards where Day 6 has passed
+    o  Create notification record in a lightweight Notifications table (or use in-memory flag on Airtable Referee record)
+•  Substitute referee flow
+    o  Candidate token link remains active until check is complete (do not expire early)
+    o  New route on candidate form: /c/:token/substitute — shows list of existing referees + 'Add Substitute' button
+    o  Candidate submits new referee details → Referee record created with isSubstitute = true, substituteFor linked to
+original
+    o  New referee is dispatched immediately on submission
+    o  Employer notified: 'A substitute referee has been added for [Candidate Name]'
+•  Manual controls (Employer dashboard)
+    o  PATCH /referees/:id/resend — resend email + SMS, reset nudge timestamps
+    o  PATCH /referees/:id/reassign — mark original as 'Substituted', employer enters new referee details
+    o  Dashboard UI: per-referee action menu (Resend / Reassign / Mark Unavailable)
+ACCEPTANCE CRITERIA
+[v]  Cron job fires every 6 hours without manual intervention
+[v]  Referee who hasn't opened link after 2 days receives nudge email + SMS
+
+--- PAGE 22 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 22
+[v]  Referee who opened but not submitted after 4 days receives nudge email
+[v]  Employer receives alert email after Day 6 with no submission
+[v]  Dashboard shows 'Overdue' badge for overdue referees
+[v]  Candidate can add a substitute via their token link — new referee receives questionnaire within 2 minutes
+[v]  Employer can resend or reassign from dashboard — action is reflected in Airtable immediately
+Estimated Effort: LARGE (L)
+Dev note: Use Render Cron Jobs rather than in-process node-cron to avoid jobs dying when the service sleeps on the
+free tier.
+
+--- PAGE 23 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 23
+SPRINT
+6
+Fraud Detection Layer
+M
+GOAL
+Implement all fraud detection heuristics as server-side checks that run at the point of referee form
+submission. All triggered flags are stored in Airtable and surfaced on the employer dashboard with
+plain-English explanations.
+USER STORIES
+→  As a Employer, I want to see fraud flags on a candidate's reference check so that I can investigate
+suspicious submissions before making a hiring decision.
+→  As a Employer, I want to understand why a flag was raised with a clear explanation so that I don't need to
+interpret raw data myself.
+→  As a Admin, I want to know that all fraud checks are enforced server-side so that flags cannot be bypassed
+by a savvy user.
+TECHNICAL TASKS
+•  Fraud detection service: /services/fraudDetection.js
+    o  Called by POST /referees/:id/response controller before storing response
+    o  Returns: { flags: string[], details: Record }
+    o  Each flag maps to a fraudFlags select option on Referee Response table
+•  Flag: Shared IP
+    o  Compare referee submissionIpAddress with candidateSubmissionIp (store on Candidate record during token
+validation)
+    o  If match: flag 'Shared IP'
+    o  Detail: 'Referee and candidate submitted from the same IP address ({ip}). This may indicate the candidate
+completed the form on behalf of the referee.'
+•  Flag: Personal email domain on senior relationship
+    o  Extract domain from referee email
+    o  Personal domains list: gmail.com, hotmail.com, yahoo.com, outlook.com, xtra.co.nz, icloud.com, me.com
+    o  If domain in list AND relationship IN ('Manager', 'Director'): flag 'Personal Email Domain'
+    o  Detail: 'Referee listed as [Manager/Director] but using a personal email domain ([domain]). Legitimate senior
+referees typically use a work email.'
+•  Flag: Email domain mismatch
+    o  Extract domain from referee email
+    o  Compare to referee's stated employerName — do a fuzzy domain match (e.g. 'Acme Ltd' → acme.co.nz)
+    o  If domains clearly don't match AND relationship is Manager/Director: flag 'Domain Mismatch'
+    o  Note: Use a simple heuristic (lowercase, strip Ltd/Limited/NZ) — not a lookup API
+•  Flag: Short response
+    o  For each long_text and short_text answer: count words
+    o  If any open-text answer is under 20 words AND question is marked required: flag 'Short Response'
+    o  Detail: 'One or more open-text answers contain fewer than 20 words, which may indicate a low-effort or
+fabricated response.'
+•  Flag: Fast completion
+    o  submissionDurationSeconds < 90: flag 'Fast Completion'
+    o  Detail: 'Questionnaire completed in under 90 seconds ([X] seconds). Average genuine completion time is 4–8
+minutes. This may indicate the form was pre-filled or auto-completed.'
+•  Dashboard fraud display
+    o  Referee Response card: show fraud flag badges (red chips) if any flags present
+
+--- PAGE 24 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 24
+    o  Expand card to show fraudFlagDetails for each flag
+    o  Candidate overallStatus → 'Flagged' if any flag is raised
+    o  Dashboard filter: 'Show Flagged Only' toggle
+ACCEPTANCE CRITERIA
+[v]  Shared IP flag fires when referee and candidate use same IP — does not fire for different IPs
+[v]  Personal email domain flag fires for gmail.com + Manager relationship — does not fire for gmail + Peer
+[v]  Short response flag fires for answers under 20 words — does not fire for adequate responses
+[v]  Fast completion flag fires for submissions under 90 seconds
+[v]  All flags stored in fraudFlags field and fraudFlagDetails on Referee Response record
+[v]  Flagged candidates show 'Flagged' status badge on employer dashboard
+[v]  Clicking a flag shows plain-English explanation
+Estimated Effort: MEDIUM (M)
+Dev note: Do not use any external IP lookup or WHOIS API — all detection is based on data already collected.
+
+--- PAGE 25 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 25
+SPRINT
+7
+Reporting & Dashboard
+XL
+GOAL
+Build the core employer dashboard with live candidate status, a per-candidate report view consolidating all
+referee responses, PDF export of the full reference report, dashboard-level metrics, and role-based access
+control.
+USER STORIES
+→  As a Employer, I want to see a list of all my candidates with their current check status at a glance so that I
+can triage which checks need attention.
+→  As a Employer, I want to view a consolidated report for each candidate showing all referee responses side
+by side so that I can make an informed hiring decision.
+→  As a Employer, I want to export a professional PDF report for each candidate so that I can share it with the
+hiring manager.
+→  As a Admin, I want to see all employer accounts and their checks so that I have platform-wide visibility.
+→  As a Recruiter, I want to only see candidates assigned to me so that the dashboard is not cluttered with
+colleagues' work.
+TECHNICAL TASKS
+•  Dashboard API endpoints
+    o  GET /dashboard — employer summary: total candidates, completion rate, avg turnaround hours, flagged count
+    o  GET /candidates — paginated list with status, createdAt, refereeCount, completedRefereeCount, fraudFlags
+    o  GET /candidates/:id/report — full report: candidate details, all referee records, all responses, fraud flags
+•  Dashboard UI (React)
+    o  Candidate list table: columns — Name, Role, Status (coloured badge), Referees (x/y complete), Created, Actions
+    o  Status badge colours: Not Started (grey), Candidate Sent (blue), In Progress (amber), Complete (green),
+Flagged (red)
+    o  Filters: status, date range, assigned recruiter
+    o  Sort: by created date, status, name
+    o  Clicking row → opens candidate report view
+•  Candidate report view
+    o  Header: candidate name, role, employer, check package, overall status
+    o  Fraud flags section (if any): list of all flags with explanations
+    o  Per-referee section: referee name, title, relationship, employer, dates worked
+    o  Responses displayed per question: all referees' answers side by side
+    o  Rating questions: show average score + individual scores per referee as bar/star visual
+    o  Download Report button → triggers PDF export
+•  PDF report export
+    o  POST /reports/:requestId/export — generates PDF server-side using PDFKit or Puppeteer
+    o  Report sections: Cover (candidate name, role, generated date), Executive Summary (package, completion date,
+overall rating), Fraud Flags (if any), Per-Referee sections (bio + all answers), Ratings Summary
+    o  PDF uses employer branding if set (Sprint 8 will refine this — use placeholder logo for now)
+    o  Returns PDF as binary stream — React downloads via blob URL
+•  Role-based access control
+    o  Middleware: requireRole(roles) — checks JWT role claim
+    o  Admin: unrestricted access to all endpoints
+    o  Recruiter: GET /candidates filtered to createdBy = req.userId
+    o  Viewer: GET only — no POST/PATCH/DELETE
+
+--- PAGE 26 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 26
+    o  Role assigned on User record in Airtable — sourced from JWT
+    o  Dashboard UI hides action buttons for Viewer role
+•  Dashboard metrics
+    o  GET /dashboard/metrics: avgTurnaroundHours, completionRate (%), flaggedRate (%), activeChecksCount
+    o  UI: 4 KPI cards at top of dashboard
+ACCEPTANCE CRITERIA
+[v]  Dashboard loads candidate list with correct status badges
+[v]  Filtering by status updates the list without page reload
+[v]  Candidate report view shows all referee responses consolidated
+[v]  Rating averages are computed correctly across referees
+[v]  PDF export downloads a complete report with all sections
+[v]  Recruiter role cannot see other recruiters' candidates
+[v]  Viewer role cannot access POST/PATCH endpoints (returns 403)
+[v]  Admin can see all candidates across all employers
+Estimated Effort: EXTRA LARGE (XL)
+Dev note: PDF generation: use Puppeteer on Render for best HTML → PDF fidelity. Set
+PUPPETEER_EXECUTABLE_PATH env var on Render.
+
+--- PAGE 27 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 27
+SPRINT
+8
+White-Label & Branding
+M
+GOAL
+Employers can upload their logo, set a brand colour, and configure a custom sender name. All outbound
+emails (candidate and referee) and public-facing forms render with full employer branding. The platform
+name is never visible to candidates or referees.
+USER STORIES
+→  As a Employer, I want to upload my company logo and set my brand colour so that candidates and referees
+see my branding, not a generic platform.
+→  As a Candidate, I want to see the employer's logo and brand colour when I open the form link so that the
+experience feels professional and trustworthy.
+→  As a Referee, I want to receive an email that appears to come from the hiring company so that I know it is a
+legitimate request.
+TECHNICAL TASKS
+•  Branding settings API + UI
+    o  GET /employers/:id/branding — returns logoUrl, brandColour, brandedSenderName
+    o  PATCH /employers/:id/branding — update branding settings
+    o  Logo upload: POST /employers/:id/logo — accepts image (PNG/JPG, max 2MB), stores in cloud storage
+(Render disk, S3, or Cloudflare R2), returns CDN URL → stored as logoUrl on Employer record
+    o  Branding settings page in React: logo upload widget, colour picker (hex input + swatch), sender name input, live
+preview panel
+•  Branded email templates (SendGrid)
+    o  Upgrade all SendGrid templates to accept dynamic branding params: {{logoUrl}}, {{brandColour}},
+{{senderName}}
+    o  Email From field: use SendGrid Dynamic Templates sender with brandedSenderName
+    o  If no logo: use a text-only header with companyName
+    o  If no brandColour: default to #2E7EBF
+    o  Templates to update: candidate-invite, referee-dispatch, referee-nudge-1, referee-nudge-2,
+employer-completion, employer-delay-alert
+•  Branded candidate + referee forms
+    o  Forms read employer branding via token validation endpoint (already returns employerBranding object)
+    o  React components: BrandedHeader (logo + company name, brand colour navbar), use CSS variables for brand
+colour on buttons/links
+    o  If no branding set: use neutral default styling
+    o  Forms must never show the platform name 'RefCheck' to candidate or referee — use employer's
+companyName
+•  Branded PDF report header
+    o  Update PDF export (Sprint 6) to include employer logo in header
+    o  Report footer: 'Reference check conducted via [brandedSenderName]' — NOT 'RefCheck'
+ACCEPTANCE CRITERIA
+[v]  Employer uploads logo — appears immediately in dashboard preview
+[v]  Candidate form shows employer logo and brand colour (navbar/buttons match brand colour)
+[v]  Referee dispatch email shows employer logo in header and branded sender name in From field
+[v]  PDF report shows employer logo on cover page
+[v]  Platform name 'RefCheck' does not appear anywhere in candidate or referee-facing touchpoints
+
+--- PAGE 28 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 28
+[v]  Employer with no branding set sees clean default styling — no broken image placeholders
+Estimated Effort: MEDIUM (M)
+
+--- PAGE 29 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 29
+SPRINT
+9
+AI Features
+XL
+GOAL
+Build on the AI question generator foundation from Sprint 2 to deliver two additional AI capabilities: a
+response summariser that extracts per-competency insights from raw referee text, and advanced anomaly
+detection (tone inconsistency, copy-paste detection). Add an AI-driven 0–100 risk score per candidate.
+Note: the AI question generator (POST /ai/generate-questions) is already live from Sprint 2 — this sprint
+extends and refines the OpenAI integration.
+USER STORIES
+→  As a Employer, I want to see a structured competency summary from each referee's responses so that I
+can quickly assess a candidate without reading every raw answer.
+→  As a Employer, I want to see a risk score for each candidate based on all available data so that I can
+prioritise which checks need manual review.
+→  As a Employer, I want to have advanced copy-paste and tone anomaly detection run automatically so that I
+catch sophisticated fraud that basic heuristics miss.
+TECHNICAL TASKS
+•  OpenAI integration extension (building on Sprint 2 setup)
+    o  OpenAI SDK already installed from Sprint 2 — extend /services/openai.js with new wrapper functions
+    o  Model: gpt-4o for all AI features
+    o  Add usage monitoring — log token counts per call to a lightweight Airtable AI_Logs table
+    o  Set up OpenAI usage alerts in dashboard to monitor costs from day 1
+•  AI response summariser
+    o  POST /ai/summarise-responses — accepts { referenceRequestId: string }
+    o  Aggregates all referee response text across the check
+    o  System prompt: 'Summarise the following reference responses into structured competency assessments.
+Competencies: Leadership, Communication, Technical Skills, Reliability, Teamwork, Cultural Fit. For each
+competency: write 2–3 sentences grounded in specific quotes or examples from the responses. Do not invent
+information not present in the responses.'
+    o  Store result as aiSummaryJson on Referee Response records
+    o  Display on report view: 'AI Summary' tab with competency cards
+•  Anomaly detection (advanced fraud)
+    o  Run during response processing: POST /ai/analyse-tone — accepts all open-text answers for a single check
+    o  Detect: (1) inconsistent tone across referees (unusually uniform/templated language), (2) copy-pasted text
+(near-identical phrases across multiple responses)
+    o  Simple heuristic for copy-paste: compute Levenshtein similarity between responses — if > 0.85, flag without AI
+call (cost saving)
+    o  AI call for tone analysis only: system prompt instructs model to return { toneFlag: boolean, rationale: string }
+    o  Flags added to fraudFlags on Referee Response: 'Tone Anomaly', 'Copy-Paste Detected'
+•  Risk score
+    o  Computed after all referees complete (or can be triggered manually)
+    o  POST /ai/risk-score — accepts full referenceRequestId
+    o  Inputs: average overall rating, number of fraud flags, response wordCounts, completion times, AI tone flags
+    o  System prompt produces a 0–100 integer with a 2–3 sentence rationale
+    o  Stored as riskScore on Reference Request record
+    o  UI: large score display on report view — colour coded: 0–30 green (low risk), 31–60 amber, 61–100 red
+ACCEPTANCE CRITERIA
+
+--- PAGE 30 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 30
+[v]  AI summary appears on report view with competency cards after check completion
+[v]  Summary text references specific referee responses — no hallucinated content
+[v]  Copy-paste flag fires when two responses share > 85% identical phrasing
+[v]  Tone anomaly flag fires when AI detects unusually uniform language across multiple referees
+[v]  Risk score appears on report view with correct colour coding (0-30 green, 31-60 amber, 61-100 red)
+[v]  Risk score rationale is displayed in 2-3 sentences alongside the score
+[v]  AI features gracefully degrade if OpenAI API is unavailable (show 'AI features temporarily unavailable' —
+core product unaffected)
+[v]  Token usage is logged per call and visible in Airtable AI_Logs table
+Estimated Effort: EXTRA LARGE (XL)
+Dev note: Gate all AI features behind a feature flag (AI_ENABLED=true env var) so they can be disabled without a
+deploy. The OpenAI SDK and /ai/generate-questions endpoint are already established in Sprint 2 — build on that
+foundation rather than starting fresh.
+
+--- PAGE 31 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 31
+SPRINT
+10
+FLOCC Integration & Webhooks
+L
+GOAL
+Build the FLOCC CRM integration: incoming webhook triggers automatic reference check creation when a
+candidate reaches 'Offer Stage' in FLOCC; outgoing webhook posts completed results back to the FLOCC
+candidate record. Also build an employer-configurable outbound webhook system and a basic API
+documentation page.
+USER STORIES
+→  As a Employer using FLOCC, I want to have a reference check automatically triggered when I move a
+candidate to Offer Stage so that I never forget to initiate a reference check.
+→  As a Employer using FLOCC, I want to see completed reference results appear back in the FLOCC
+candidate record without manual data entry so that my workflow stays in one place.
+→  As a Any Employer, I want to configure a webhook URL to receive check completion events in my own
+systems so that I can integrate RefCheck into my existing tooling.
+→  As a Developer, I want to access clear API documentation so that I can build integrations without guessing.
+TECHNICAL TASKS
+•  FLOCC inbound webhook
+    o  POST /webhooks/flocc/inbound — endpoint secured with HMAC signature verification
+    o  Payload: { candidateId, candidateName, candidateEmail, candidatePhone, role, employerName,
+flocCandidateRecordId }
+    o  On receipt: validate signature → look up employer by apiKey (sent as header) → create Candidate record →
+assign default package → dispatch candidate invite email
+    o  Store flocCandidateRecordId on Candidate for results post-back
+    o  Return 200 with { referenceCheckId } immediately — process async
+•  FLOCC outbound webhook
+    o  Trigger: when candidate overallStatus → 'Complete' or 'Flagged'
+    o  POST to FLOCC webhook URL (configured per employer)
+    o  Payload: { flocCandidateRecordId, status, overallRating, riskScore, flagCount, pdfReportUrl, completedAt }
+    o  pdfReportUrl: generate signed time-limited URL to PDF (24h expiry)
+    o  Retry logic: 3 retries with 5m, 15m, 30m backoff
+    o  Log delivery attempts in a Webhook Logs table in Airtable
+•  Employer outbound webhook builder
+    o  Settings page: 'Webhook' tab — URL field, toggle active/inactive, test button
+    o  POST /employers/:id/webhook — save webhook URL to Employer record
+    o  POST /webhooks/test — sends test payload to configured URL, shows response
+    o  Webhook fires on: check complete, check flagged, referee non-response Day 6 alert
+•  API key management
+    o  Generate apiKey on Employer creation (crypto.randomBytes(32).toString('hex'))
+    o  Settings page: 'API Keys' tab — display masked key, Regenerate button
+    o  PATCH /employers/:id/api-key — regenerates key (invalidates old key immediately)
+    o  All inbound webhook endpoints validated via apiKey in Authorization: Bearer header
+•  API documentation page
+    o  Static page at /docs (React route, publicly accessible)
+    o  Sections: Authentication (Bearer token), Endpoints (GET /candidates, POST /candidates, POST
+/webhooks/flocc/inbound, webhook payload schemas), Error Codes (400, 401, 403, 404, 422, 429, 500)
+    o  Built with a simple React component — no third-party docs framework needed at this stage
+
+--- PAGE 32 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 32
+    o  Code examples in fetch/curl for each endpoint
+ACCEPTANCE CRITERIA
+[v]  Sending a test FLOCC payload to POST /webhooks/flocc/inbound creates a Candidate record and
+dispatches candidate email
+[v]  Invalid HMAC signature returns 401 — webhook is rejected
+[v]  When check completes, outbound webhook fires to FLOCC with correct payload within 60 seconds
+[v]  PDF report URL in payload is accessible for 24 hours
+[v]  Employer can configure their own webhook URL and trigger a test — test response is shown in UI
+[v]  API key regeneration immediately invalidates the old key
+[v]  API docs page is accessible at /docs without authentication
+Estimated Effort: LARGE (L)
+Dev note: Confirm FLOCC webhook payload schema directly with Wayne before Sprint 10 begins — document it in a
+shared Notion or README and get sign-off.
+
+--- PAGE 33 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 33
+5. Tech Stack Summary
+Layer
+Technology
+Version / Service
+Purpose
+Database
+Airtable
+Cloud / REST + SDK
+Primary data store — all application data
+Backend API
+Node.js + Express
+Node 20 LTS
+REST API server
+Backend Host
+Render
+Web Service + Cron
+Jobs
+API hosting, auto-deploy from GitHub
+Frontend
+React + TypeScript
+React 18 / Vite
+Employer dashboard + public forms
+Frontend Host
+Render Static Site
+or Netlify
+—
+Static file hosting + CDN
+Auth
+Google SSO (OAuth
+2.0)
+Google Identity
+Employer login — no passwords stored
+Session Tokens
+JWT (HS256)
+jsonwebtoken npm
+Stateless auth for API requests
+Email
+SendGrid
+Transactional API
+All outbound emails (invite, nudge, notify)
+SMS
+Twilio
+REST API
+Referee questionnaire links via SMS
+AI
+OpenAI GPT-4o
+openai npm
+Question gen, summarisation, risk scoring
+PDF Generation
+Puppeteer
+(server-side)
+puppeteer npm
+HTML → PDF for reports
+File Storage
+Cloudflare R2 or
+Render Disk
+S3-compatible API
+Employer logo uploads
+Version Control
+GitHub
+GitHub Actions CI
+Source of truth + deploy triggers
+Cron /
+Scheduling
+Render Cron Jobs
+Render dashboard
+config
+Nudge engine automation
+Environment
+Config
+dotenv
+.env + Render env
+vars
+All secrets and config
+
+--- PAGE 34 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 34
+6. Deployment Notes
+Render · GitHub · Environment Variables
+6.1 Render Services
+Service Name
+Type
+Description
+Deploy Branch
+Health Check
+refcheck-api
+Web Service
+Node.js backend API
+main branch
+POST /api/health
+refcheck-web
+Static Site
+React frontend build
+main branch
+—
+refcheck-nudge
+Cron Job
+POST /cron/nudge-check
+Every 6 hours
+—
+6.2 GitHub Repository Structure
+Recommended monorepo layout:
+refcheck/
+├── api/ # Node.js Express backend
+│ ├── routes/
+│ ├── controllers/
+│ ├── services/
+│ │ ├── airtable.js
+│ │ ├── auth.js
+│ │ ├── email.js # SendGrid
+│ │ ├── sms.js # Twilio
+│ │ ├── fraudDetection.js
+│ │ └── openai.js
+│ ├── middleware/
+│ │ ├── authMiddleware.js
+│ │ └── requireRole.js
+│ └── cron/
+│ └── nudgeCheck.js
+├── web/ # React frontend
+│ ├── src/
+│ │ ├── pages/
+│ │ ├── components/
+│ │ └── services/ # axios API calls
+│ └── public/
+└── README.md
+6.3 Environment Variables
+All secrets are stored as Render environment variables — never in the repository. A .env.example file in
+the repo root documents all required keys with placeholder values.
+Variable
+Example Value
+Service
+NODE_ENV
+production
+Backend
+PORT
+3000
+Backend
+AIRTABLE_API_KEY
+pat_...
+Backend
+AIRTABLE_BASE_ID
+app...
+Backend
+JWT_SECRET
+256-bit random hex string
+Backend
+
+--- PAGE 35 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 35
+Variable
+Example Value
+Service
+JWT_REFRESH_SECRET
+256-bit random hex string
+Backend
+GOOGLE_CLIENT_ID
+...apps.googleusercontent.com
+Backend
+GOOGLE_CLIENT_SECRET
+GOCSPX-...
+Backend
+GOOGLE_CALLBACK_URL
+https://api.refcheck.nz/auth/google/
+callback
+Backend
+SENDGRID_API_KEY
+SG...
+Backend
+SENDGRID_FROM_EMAIL
+noreply@refcheck.nz
+Backend
+TWILIO_ACCOUNT_SID
+AC...
+Backend
+TWILIO_AUTH_TOKEN
+...
+Backend
+TWILIO_FROM_NUMBER
++6421...
+Backend
+OPENAI_API_KEY
+sk-...
+Backend
+AI_ENABLED
+true
+Backend
+CRON_SECRET
+random string — protect cron endpoint
+Backend
+R2_ACCOUNT_ID
+Cloudflare R2 account ID
+Backend
+R2_ACCESS_KEY_ID
+...
+Backend
+R2_SECRET_ACCESS_KEY
+...
+Backend
+R2_BUCKET_NAME
+refcheck-assets
+Backend
+REGISTRATION_MODE
+invite or open
+Backend
+FLOCC_WEBHOOK_SECRET
+HMAC secret for FLOCC signature
+verification
+Backend
+VITE_API_URL
+https://api.refcheck.nz
+Frontend
+VITE_GOOGLE_CLIENT_ID
+...apps.googleusercontent.com
+Frontend
+6.4 GitHub Actions CI/CD
+Recommended GitHub Actions workflow for the API service:
+name: Deploy API
+on:
+push:
+branches: [main]
+paths: ['api/**']
+jobs:
+deploy:
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v4
+- name: Deploy to Render
+run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+Store RENDER_DEPLOY_HOOK as a GitHub Actions secret (not a repo variable). Render provides a unique
+deploy hook URL per service under Settings → Deploy Hooks. Separate deploy hooks for refcheck-api
+and refcheck-web.
+
+--- PAGE 36 ---
+REFCHECK — Developer Handoff Document
+Candidex · Wayne Sullivan · June 2026
+CONFIDENTIAL — For Developer Use Only
+Page 36
+6.5 Domain & SSL
+•  Primary domain: refcheck.nz (or candidex.nz/refcheck — confirm with Wayne)
+•  API subdomain: api.refcheck.nz → Render Web Service custom domain
+•  App subdomain: app.refcheck.nz → Render Static Site or Netlify
+•  SSL: Render and Netlify both provision Let's Encrypt certificates automatically — no manual config
+•  Candidate forms: app.refcheck.nz/c/:token — ensure CDN does not cache token routes
+•  Referee forms: app.refcheck.nz/r/:token — same
+ End of Developer Handoff Document · RefCheck by Candidex · v2.0 · June 2026
+ Prepared by Perplexity Computer for Wayne Sullivan, Candidex, New Zealand

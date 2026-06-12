@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 17% 98%;      /* Google Workspace background #F8F9FA */
+  --foreground: 220 16% 16%;       /* Google Charcoal text #202124 */
+  --border: 220 13% 88%;          /* Google Border/Divider #DADCE0 */
+  --input: 220 13% 88%;
+  --ring: 214 82% 51%;            /* Google Blue #1A73E8 */
+  --card: 0 0% 100%;              /* Pure White card */
+  --card-foreground: 220 16% 16%;
+  --primary: 214 82% 51%;         /* Google Blue #1A73E8 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 17% 95%;       /* Google light grey #F1F3F4 */
+  --secondary-foreground: 220 16% 16%;
+  --muted: 210 17% 95%;
+  --muted-foreground: 216 8% 45%; /* Google grey text #5F6368 */
+  --accent: 214 82% 96%;         /* Light Google Blue tint */
+  --accent-foreground: 214 82% 51%;
+  --destructive: 4 90% 58%;       /* Google Red #D93025 */
+  --destructive-foreground: 0 0% 100%;
+  
+  --font-sans: "Outfit", "Inter", sans-serif;
+  --radius: 1.25rem;              /* Google Product big card rounded corners (20px) */
+}
+
+.dark {
+  --background: 220 16% 10%;      /* Google Dark background #1F2023 */
+  --foreground: 210 17% 95%;      /* Light gray text */
+  --border: 220 10% 20%;
+  --input: 220 10% 20%;
+  --ring: 217 89% 61%;            /* Google Blue dark mode */
+  --card: 220 16% 14%;            /* Slightly lighter card background */
+  --card-foreground: 210 17% 95%;
+  --primary: 217 89% 61%;
+  --primary-foreground: 220 16% 10%;
+  --secondary: 220 10% 18%;
+  --secondary-foreground: 210 17% 95%;
+  --muted: 220 10% 18%;
+  --muted-foreground: 220 8% 65%;
+  --accent: 217 89% 20%;
+  --accent-foreground: 217 89% 80%;
+  --destructive: 4 90% 65%;
+  --destructive-foreground: 0 0% 100%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom micro-animations & Google aesthetics */
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease-in-out;
+}
+.hover-scale:hover {
+  transform: scale(1.015);
+  box-shadow: 0 4px 20px 0 rgba(60,64,67,0.1);
+}
+
+.google-shadow {
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+}
+
+.google-shadow-hover:hover {
+  box-shadow: 0 4px 8px 3px rgba(60,64,67,0.15), 0 1px 3px 0 rgba(60,64,67,0.3);
+}
