@@ -737,6 +737,19 @@ export const airtableService = {
     }
   },
 
+  getUserById: async (id: string) => {
+    if (isMock) {
+      return mockDb.users.find((u: any) => u.id === id) || null;
+    }
+    try {
+      const record = await base("Users").find(id);
+      return { id: record.id, ...record.fields };
+    } catch (err) {
+      console.error(`Airtable error checking user by ID:`, err);
+      return null;
+    }
+  },
+
   createUser: async (data: { fullName: string; email: string; googleSsoId: string; employerId: string; role?: string }) => {
     if (isMock) {
       const newId = `rec_usr_${Date.now()}`;

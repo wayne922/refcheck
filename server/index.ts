@@ -81,6 +81,21 @@ const requireRole = (roles: string[]) => {
 };
 
 
+// Helper to resolve Candidate creator's email address
+const getRecruiterEmail = async (candidate: any): Promise<string> => {
+  if (candidate && candidate.createdBy) {
+    const creatorId = Array.isArray(candidate.createdBy) ? candidate.createdBy[0] : candidate.createdBy;
+    if (creatorId) {
+      const creator = await airtableService.getUserById(creatorId);
+      if (creator && creator.email) {
+        return creator.email;
+      }
+    }
+  }
+  return "wayne@candidex.co.nz"; // Default fallback
+};
+
+
 // Request Logger
 app.use((req, res, next) => {
   const start = Date.now();
@@ -907,7 +922,7 @@ app.post("/api/candidates/:id/referees", async (req, res) => {
     await airtableService.updateCandidateStatus(id, "Referees Submitted");
 
     // Send SendGrid notification email to employer recruiter
-    const recruiterEmail = "wayne@candidex.co.nz";
+    const recruiterEmail = await getRecruiterEmail(candidate);
     await emailService.sendEmployerNotification(recruiterEmail, candidate.fullName);
 
     return res.status(200).json({ success: true, referees: createdReferees });
@@ -974,7 +989,7 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
     await smsService.sendRefereeInvite(referee.fullName, referee.phone, candidate.fullName, candidate.employerName, refereeToken);
 
     // Notify recruiter
-    const recruiterEmail = "wayne@candidex.co.nz";
+    const recruiterEmail = await getRecruiterEmail(candidate);
     await emailService.sendEmployerSubstituteAlert(recruiterEmail, candidate.fullName, referee.fullName);
 
     return res.status(200).json({ success: true, referee: { ...substituteRecord, formStatus: "Sent" } });
@@ -1157,7 +1172,7 @@ app.post("/api/referees/:id/response", async (req, res) => {
 
     
     // Recruiter notification email
-    const recruiterEmail = "wayne@candidex.co.nz";
+    const recruiterEmail = await getRecruiterEmail(candidate);
     await emailService.sendEmail({
       to: recruiterEmail,
       subject: `Reference Completed: ${referee.fullName} for ${candidate.fullName}`,
@@ -1471,7 +1486,7 @@ app.post("/cron/nudge-check", async (req, res) => {
       if (diffDays >= 6) {
         if (!ref.employerAlertedAt) {
           // Send employer alert email
-          const recruiterEmail = "wayne@candidex.co.nz";
+          const recruiterEmail = await getRecruiterEmail(candidate);
           await emailService.sendEmployerDelayAlert(recruiterEmail, candidate.fullName, ref.fullName);
           
           await airtableService.updateRefereeFields(ref.id, {
