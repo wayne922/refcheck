@@ -40,22 +40,37 @@ export const emailService = {
     }
 
     try {
+      const body: any = {
+        personalizations: [{
+          to: [{ email: payload.to }]
+        }],
+        from: { email: process.env.SENDGRID_FROM_EMAIL || "no-reply@refcheck.nz", name: "RefCheck" },
+        subject: payload.subject
+      };
+
+      if (payload.templateId) {
+        body.template_id = payload.templateId;
+        body.personalizations[0].dynamic_template_data = payload.dynamicTemplateData;
+      } else {
+        body.content = [];
+        if (payload.text) {
+          body.content.push({ type: "text/plain", value: payload.text });
+        }
+        if (payload.html) {
+          body.content.push({ type: "text/html", value: payload.html });
+        }
+        if (body.content.length === 0) {
+          body.content.push({ type: "text/plain", value: payload.subject });
+        }
+      }
+
       const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${sendgridKey}`
         },
-        body: JSON.stringify({
-          personalizations: [{
-            to: [{ email: payload.to }],
-            dynamic_template_data: payload.dynamicTemplateData
-          }],
-          from: { email: process.env.SENDGRID_FROM_EMAIL || "no-reply@refcheck.nz", name: "RefCheck" },
-          subject: payload.subject,
-          template_id: payload.templateId,
-          content: payload.text ? [{ type: "text/plain", value: payload.text }] : undefined
-        })
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {
