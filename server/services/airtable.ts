@@ -655,7 +655,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Employers").find(id);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching employer ${id}:`, err);
       throw err;
@@ -674,7 +674,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error searching employer by SSO:`, err);
       throw err;
@@ -708,9 +708,8 @@ export const airtableService = {
         googleSsoId: data.googleSsoId,
         planType: "Starter",
         subscriptionStatus: "Active",
-        createdAt: new Date().toISOString(),
       });
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating employer:`, err);
       throw err;
@@ -730,7 +729,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error checking user by email:`, err);
       throw err;
@@ -743,7 +742,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Users").find(id);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error checking user by ID:`, err);
       return null;
@@ -777,9 +776,8 @@ export const airtableService = {
         employer: [data.employerId],
         isActive: true,
         lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
       });
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating user:`, err);
       throw err;
@@ -815,7 +813,7 @@ export const airtableService = {
         selectOptions.filterByFormula = `SEARCH('${employerId}', ARRAYJOIN({employer})) > 0`;
       }
       const records = await base("Candidates").select(selectOptions).all();
-      return records.map((r: any) => ({ id: r.id, ...r.fields }));
+      return records.map((r: any) => ({ id: r.id, createdAt: r.createdTime, ...r.fields }));
     } catch (err) {
       console.error(`Airtable error fetching candidates:`, err);
       throw err;
@@ -828,7 +826,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Candidates").find(id);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching candidate by ID ${id}:`, err);
       throw err;
@@ -857,7 +855,6 @@ export const airtableService = {
       candidateToken: data.candidateToken,
       tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       overallStatus: "Candidate Sent",
-      createdAt: new Date().toISOString(),
     };
 
     if (data.createdBy) {
@@ -866,13 +863,13 @@ export const airtableService = {
 
     if (isMock) {
       const newId = `rec_cand_${Date.now()}`;
-      const newCand = { id: newId, candidateId: newId, ...newCandFields };
+      const newCand = { id: newId, candidateId: newId, createdAt: new Date().toISOString(), ...newCandFields };
       mockDb.candidates.push(newCand);
       return newCand;
     }
     try {
       const record = await base("Candidates").create(newCandFields);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating candidate:`, err);
       throw err;
@@ -891,7 +888,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error fetching candidate by token:`, err);
       throw err;
@@ -962,7 +959,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Questionnaire_Templates").find(id);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching template ${id}:`, err);
       throw err;
@@ -981,7 +978,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error fetching template by name ${name}:`, err);
       throw err;
@@ -996,13 +993,12 @@ export const airtableService = {
     Branching_Rules_JSON?: string;
     Created_By: string;
   }) => {
-    const newFields = {
+    const newFields: any = {
       Name: data.Name,
       Description: data.Description || "",
       Industry: data.Industry,
       Is_System_Template: false,
       Created_By: [data.Created_By],
-      Created_At: new Date().toISOString(),
       Status: "Active",
       Questions_JSON: data.Questions_JSON,
       Branching_Rules_JSON: data.Branching_Rules_JSON || "[]"
@@ -1010,13 +1006,13 @@ export const airtableService = {
 
     if (isMock) {
       const newId = `temp_cust_${Date.now()}`;
-      const newTemplate = { id: newId, templateId: newId, ...newFields };
+      const newTemplate = { id: newId, templateId: newId, Created_At: new Date().toISOString(), ...newFields };
       mockDb.questionnaireTemplates.push(newTemplate);
       return newTemplate;
     }
     try {
       const record = await base("Questionnaire_Templates").create(newFields);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating template:", err);
       throw err;
@@ -1211,22 +1207,21 @@ export const airtableService = {
     employerId: string;
     status: string;
   }) => {
-    const fields = {
+    const fields: any = {
       candidate: [data.candidateId],
       employer: [data.employerId],
       status: data.status,
-      createdAt: new Date().toISOString(),
     };
 
     if (isMock) {
       const id = `rec_req_${Date.now()}`;
-      const record = { id, requestId: id, ...fields };
+      const record = { id, requestId: id, createdAt: new Date().toISOString(), ...fields };
       mockDb.referenceRequests.push(record);
       return record;
     }
     try {
       const record = await base("Reference_Requests").create(fields);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating reference request:", err);
       throw err;
