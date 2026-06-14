@@ -655,7 +655,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Employers").find(id);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching employer ${id}:`, err);
       throw err;
@@ -674,7 +674,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error searching employer by SSO:`, err);
       throw err;
@@ -709,7 +709,7 @@ export const airtableService = {
         planType: "Starter",
         subscriptionStatus: "Active",
       });
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating employer:`, err);
       throw err;
@@ -729,7 +729,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error checking user by email:`, err);
       throw err;
@@ -742,7 +742,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Users").find(id);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error checking user by ID:`, err);
       return null;
@@ -777,7 +777,7 @@ export const airtableService = {
         isActive: true,
         lastLoginAt: new Date().toISOString(),
       });
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating user:`, err);
       throw err;
@@ -813,7 +813,7 @@ export const airtableService = {
         selectOptions.filterByFormula = `SEARCH('${employerId}', ARRAYJOIN({employer})) > 0`;
       }
       const records = await base("Candidates").select(selectOptions).all();
-      return records.map((r: any) => ({ id: r.id, createdAt: r.createdTime, ...r.fields }));
+      return records.map((r: any) => ({ id: r.id, createdAt: r._rawJson.createdTime || new Date().toISOString(), ...r.fields }));
     } catch (err) {
       console.error(`Airtable error fetching candidates:`, err);
       throw err;
@@ -826,7 +826,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Candidates").find(id);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching candidate by ID ${id}:`, err);
       throw err;
@@ -869,7 +869,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Candidates").create(newCandFields);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating candidate:`, err);
       throw err;
@@ -888,7 +888,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error fetching candidate by token:`, err);
       throw err;
@@ -959,7 +959,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Questionnaire_Templates").find(id);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching template ${id}:`, err);
       throw err;
@@ -978,7 +978,7 @@ export const airtableService = {
         })
         .firstPage();
       if (records.length === 0) return null;
-      return { id: records[0].id, createdAt: records[0].createdTime, ...records[0].fields };
+      return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
     } catch (err) {
       console.error(`Airtable error fetching template by name ${name}:`, err);
       throw err;
@@ -1012,7 +1012,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Questionnaire_Templates").create(newFields);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating template:", err);
       throw err;
@@ -1126,7 +1126,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Referees").find(id);
-      return { id: record.id, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching referee ${id}:`, err);
       throw err;
@@ -1221,7 +1221,7 @@ export const airtableService = {
     }
     try {
       const record = await base("Reference_Requests").create(fields);
-      return { id: record.id, createdAt: record.createdTime, ...record.fields };
+      return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating reference request:", err);
       throw err;
