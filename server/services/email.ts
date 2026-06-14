@@ -51,7 +51,7 @@ export const emailService = {
             to: [{ email: payload.to }],
             dynamic_template_data: payload.dynamicTemplateData
           }],
-          from: { email: "no-reply@refcheck.nz", name: "RefCheck" },
+          from: { email: process.env.SENDGRID_FROM_EMAIL || "no-reply@refcheck.nz", name: "RefCheck" },
           subject: payload.subject,
           template_id: payload.templateId,
           content: payload.text ? [{ type: "text/plain", value: payload.text }] : undefined
