@@ -22,6 +22,42 @@ if (apiKey && baseId && process.env.MOCK_MODE !== "true") {
   );
 }
 
+async function safeCreate(tableName: string, fields: any) {
+  let writeFields = { ...fields };
+  while (true) {
+    try {
+      return await base(tableName).create(writeFields);
+    } catch (err: any) {
+      const match = err.message?.match(/Unknown field name: "([^"]+)"/);
+      if (match && match[1]) {
+        const missingField = match[1];
+        console.warn(`[Airtable Auto-Recovery] Table '${tableName}' missing field '${missingField}'. Stripping and retrying...`);
+        delete writeFields[missingField];
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+async function safeUpdate(tableName: string, id: string, fields: any) {
+  let writeFields = { ...fields };
+  while (true) {
+    try {
+      return await base(tableName).update(id, writeFields);
+    } catch (err: any) {
+      const match = err.message?.match(/Unknown field name: "([^"]+)"/);
+      if (match && match[1]) {
+        const missingField = match[1];
+        console.warn(`[Airtable Auto-Recovery] Table '${tableName}' missing field '${missingField}' during update. Stripping and retrying...`);
+        delete writeFields[missingField];
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // Seeded questions helper
 const createQuestionsSeed = (templateName: string): any[] => {
   switch (templateName) {
@@ -702,7 +738,7 @@ export const airtableService = {
       return newEmployer;
     }
     try {
-      const record = await base("Employers").create({
+      const record = await safeCreate("Employers", {
         companyName: data.companyName,
         companyDomain: data.companyDomain,
         googleSsoId: data.googleSsoId,
@@ -768,7 +804,7 @@ export const airtableService = {
       return newUser;
     }
     try {
-      const record = await base("Users").create({
+      const record = await safeCreate("Users", {
         fullName: data.fullName,
         email: data.email,
         googleSsoId: data.googleSsoId,
@@ -793,7 +829,7 @@ export const airtableService = {
       return;
     }
     try {
-      await base("Users").update(id, data);
+      await safeUpdate("Users", id, data);
     } catch (err) {
       console.error(`Airtable error updating user fields for ${id}:`, err);
       throw err;
@@ -868,7 +904,7 @@ export const airtableService = {
       return newCand;
     }
     try {
-      const record = await base("Candidates").create(newCandFields);
+      const record = await safeCreate("Candidates", newCandFields);
       return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error creating candidate:`, err);
@@ -934,7 +970,7 @@ export const airtableService = {
       if (status === "Referees Submitted") {
         updateFields.candidateFormSubmittedAt = new Date().toISOString();
       }
-      await base("Candidates").update(id, updateFields);
+      await safeUpdate("Candidates", id, updateFields);
     } catch (err) {
       console.error(`Airtable error updating candidate status:`, err);
     }
@@ -949,7 +985,7 @@ export const airtableService = {
       return;
     }
     try {
-      await base("Candidates").update(id, data);
+      await safeUpdate("Candidates", id, data);
     } catch (err) {
       console.error(`Airtable error updating candidate fields for ${id}:`, err);
       throw err;
@@ -1034,7 +1070,7 @@ export const airtableService = {
       return newTemplate;
     }
     try {
-      const record = await base("Questionnaire_Templates").create(newFields);
+      const record = await safeCreate("Questionnaire_Templates", newFields);
       return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating template:", err);
@@ -1060,7 +1096,7 @@ export const airtableService = {
       return updated;
     }
     try {
-      const record = await base("Questionnaire_Templates").update(id, data);
+      const record = await safeUpdate("Questionnaire_Templates", id, data);
       return { id: record.id, ...record.fields };
     } catch (err) {
       console.error(`Airtable error updating template ${id}:`, err);
@@ -1076,7 +1112,7 @@ export const airtableService = {
       return true;
     }
     try {
-      await base("Questionnaire_Templates").update(id, { Status: "Archived" });
+      await safeUpdate("Questionnaire_Templates", id, { Status: "Archived" });
       return true;
     } catch (err) {
       console.error(`Airtable error deleting template ${id}:`, err);
@@ -1135,7 +1171,7 @@ export const airtableService = {
       return record;
     }
     try {
-      const record = await base("Referees").create(fields);
+      const record = await safeCreate("Referees", fields);
       return { id: record.id, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating referee:", err);
@@ -1184,7 +1220,7 @@ export const airtableService = {
       return;
     }
     try {
-      await base("Referees").update(id, data);
+      await safeUpdate("Referees", id, data);
     } catch (err) {
       console.error(`Airtable error updating referee fields for ${id}:`, err);
       throw err;
@@ -1259,7 +1295,7 @@ export const airtableService = {
       return record;
     }
     try {
-      const record = await base("Reference_Requests").create(fields);
+      const record = await safeCreate("Reference_Requests", fields);
       return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating reference request:", err);
@@ -1295,7 +1331,7 @@ export const airtableService = {
       return record;
     }
     try {
-      const record = await base("Referee_Responses").create(fields);
+      const record = await safeCreate("Referee_Responses", fields);
       return { id: record.id, ...record.fields };
     } catch (err) {
       console.error("Airtable error creating referee response:", err);
