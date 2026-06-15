@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import crypto from "crypto";
 import { airtableService } from "./services/airtable.ts";
 import { serveStatic } from "./static.ts";
 import { emailService } from "./services/email.ts";
@@ -434,11 +435,7 @@ app.post("/api/candidates", authMiddleware as any, requireRole(["Admin", "Recrui
   try {
     const employer = await airtableService.getEmployer(req.user!.employerId);
     
-    const candidateToken = jwt.sign(
-      { email, employerId: req.user!.employerId },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const candidateToken = crypto.randomBytes(8).toString("hex");
 
     const candidate = await airtableService.createCandidate({
       fullName,
@@ -465,10 +462,14 @@ app.post("/api/candidates", authMiddleware as any, requireRole(["Admin", "Recrui
 app.get("/api/candidates/by-token/:token", async (req, res) => {
   const { token } = req.params;
   try {
-    const verified = jwt.verify(token, JWT_SECRET) as any;
     const candidate = await airtableService.getCandidateByToken(token);
     if (!candidate) {
       return res.status(404).json({ success: false, error: "Candidate token not found in database" });
+    }
+    
+    // Verify expiration manually
+    if (candidate.tokenExpiresAt && new Date() > new Date(candidate.tokenExpiresAt)) {
+      return res.status(403).json({ success: false, error: "Link expired or invalid" });
     }
     
     // Record candidate submission IP
@@ -833,10 +834,14 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
 app.get("/api/candidates/by-token/:token/referees", async (req, res) => {
   const { token } = req.params;
   try {
-    const verified = jwt.verify(token, JWT_SECRET) as any;
     const candidate = await airtableService.getCandidateByToken(token);
     if (!candidate) {
       return res.status(404).json({ success: false, error: "Candidate not found" });
+    }
+
+    // Verify expiration manually
+    if (candidate.tokenExpiresAt && new Date() > new Date(candidate.tokenExpiresAt)) {
+      return res.status(403).json({ success: false, error: "Link expired or invalid" });
     }
     const referees = await airtableService.getRefereesForCandidate(candidate.id);
     return res.status(200).json({ success: true, candidate, referees });
@@ -875,11 +880,7 @@ app.post("/api/candidates/:id/referees", async (req, res) => {
     // Create each referee in Airtable and dispatch invites
     const createdReferees = [];
     for (const ref of referees) {
-      const refereeToken = jwt.sign(
-        { email: ref.email, candidateId: id },
-        JWT_SECRET,
-        { expiresIn: "14d" }
-      );
+      const refereeToken = crypto.randomBytes(8).toString("hex");
 
       const refereeRecord = await airtableService.createReferee({
         fullName: ref.fullName,
@@ -945,11 +946,7 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
     }
 
     // Generate refereeToken
-    const refereeToken = jwt.sign(
-      { email: referee.email, candidateId: id },
-      JWT_SECRET,
-      { expiresIn: "14d" }
-    );
+    const refereeToken = crypto.randomBytes(8).toString("hex");
 
     // Create substitute referee record
     const substituteRecord = await airtableService.createReferee({
@@ -1000,10 +997,14 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
 app.get("/api/referees/by-token/:token", async (req, res) => {
   const { token } = req.params;
   try {
-    const verified = jwt.verify(token, JWT_SECRET) as any;
     const referee = await airtableService.getRefereeByToken(token);
     if (!referee) {
       return res.status(404).json({ success: false, error: "Referee token not found" });
+    }
+
+    // Verify expiration manually
+    if (referee.tokenExpiresAt && new Date() > new Date(referee.tokenExpiresAt)) {
+      return res.status(403).json({ success: false, error: "Link expired or invalid" });
     }
 
     // Update status to 'Opened' and record formOpenedAt timestamp if not already set
@@ -1249,12 +1250,7 @@ app.patch("/api/referees/:id/reassign", authMiddleware as any, requireRole(["Adm
       formStatus: "Substituted"
     });
 
-    // Generate token for new referee
-    const refereeToken = jwt.sign(
-      { email, candidateId },
-      JWT_SECRET,
-      { expiresIn: "14d" }
-    );
+    const refereeToken = crypto.randomBytes(8).toString("hex");
 
     // Create new referee
     const newReferee = await airtableService.createReferee({
