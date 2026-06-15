@@ -1111,13 +1111,12 @@ export const airtableService = {
     candidateId: string;
     refereeToken: string;
   }) => {
-    const fields = {
+    const fields: any = {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
       relationship: data.relationship,
       employerName: data.employerName,
-      employerDomain: data.email.split("@")[1] || "",
       jobTitle: data.jobTitle,
       datesFrom: data.datesFrom,
       datesTo: data.datesTo || "",
@@ -1129,6 +1128,7 @@ export const airtableService = {
     };
 
     if (isMock) {
+      fields.employerDomain = data.email.split("@")[1] || "";
       const id = `rec_ref_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       const record = { id, refereeId: id, ...fields };
       mockDb.referees.push(record);
