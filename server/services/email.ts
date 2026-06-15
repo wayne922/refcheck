@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const sendgridKey = process.env.SENDGRID_API_KEY;
+const BASE_URL = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:5006";
 let isMock = true;
 
 if (sendgridKey && process.env.MOCK_MODE !== "true") {
@@ -86,7 +87,7 @@ export const emailService = {
   },
 
   sendCandidateInvite: async (candidateName: string, candidateEmail: string, token: string, employerName: string) => {
-    const inviteUrl = `http://localhost:5006/c/${token}`;
+    const inviteUrl = `${BASE_URL}/c/${token}`;
     return emailService.sendEmail({
       to: candidateEmail,
       subject: `Reference Check Invitation for ${candidateName}`,
@@ -100,7 +101,7 @@ export const emailService = {
   },
 
   sendRefereeInvite: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `http://localhost:5006/r/${token}`;
+    const inviteUrl = `${BASE_URL}/r/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Reference request for ${candidateName} - ${employerName}`,
@@ -123,7 +124,7 @@ export const emailService = {
   },
 
   sendRefereeNudge1: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `http://localhost:5006/r/${token}`;
+    const inviteUrl = `${BASE_URL}/r/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Reminder: Reference request for ${candidateName} - ${employerName}`,
@@ -133,7 +134,7 @@ export const emailService = {
   },
 
   sendRefereeNudge2: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `http://localhost:5006/r/${token}`;
+    const inviteUrl = `${BASE_URL}/r/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Action Required: Reference request for ${candidateName} - ${employerName}`,
