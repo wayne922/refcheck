@@ -14,7 +14,8 @@ import {
   Clock,
   ExternalLink,
   Copy,
-  Check
+  Check,
+  Trash2
 } from "lucide-react";
 import { AuthState } from "../App.tsx";
 
@@ -273,6 +274,30 @@ export function Candidates({ auth }: CandidatesProps) {
       }
     } catch (err: any) {
       alert(err.message || "Failed to resend.");
+    }
+  };
+
+  const handleDeleteReferee = async (refereeId: string) => {
+    if (!window.confirm("Are you sure you want to delete this referee request? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/referees/${refereeId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${auth.token}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete referee");
+      }
+      alert("Referee request removed successfully!");
+      if (selectedCandidate) {
+        fetchCandidateDetails(selectedCandidate.id);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete.");
     }
   };
 
@@ -1012,7 +1037,6 @@ export function Candidates({ auth }: CandidatesProps) {
                               </span>
                               <span className="flex items-center gap-1.5"><Phone className="w-4 h-4 text-muted-foreground/50" />{ref.phone}</span>
                             </div>
-
                             {/* Manual Controls (Employer Dashboard Actions) */}
                             {!isViewer && !isSubbed && ref.formStatus !== "Complete" && (
                               <div className="pt-2 flex flex-wrap gap-2.5 border-t border-border/60">
@@ -1031,6 +1055,13 @@ export function Candidates({ auth }: CandidatesProps) {
                                     >
                                       <UserX className="w-3.5 h-3.5" />
                                       Reassign
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteReferee(ref.id)}
+                                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-200 hover:bg-red-50 text-red-600 hover:text-red-700 rounded-full text-xs font-semibold transition-all cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      Delete
                                     </button>
                                   </>
                                 ) : (

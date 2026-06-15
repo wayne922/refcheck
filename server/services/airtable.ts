@@ -1168,6 +1168,22 @@ export const airtableService = {
     }
   },
 
+  deleteReferee: async (id: string) => {
+    if (isMock) {
+      const idx = mockDb.referees.findIndex((r: any) => r.id === id);
+      if (idx !== -1) {
+        mockDb.referees.splice(idx, 1);
+      }
+      return;
+    }
+    try {
+      await base("Referees").destroy(id);
+    } catch (err) {
+      console.error(`Airtable error deleting referee ${id}:`, err);
+      throw err;
+    }
+  },
+
   getRefereesForCandidate: async (candidateId: string) => {
     if (isMock) {
       return mockDb.referees.filter((r: any) => r.candidate.includes(candidateId));

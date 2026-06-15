@@ -1224,6 +1224,24 @@ app.patch("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin
   }
 });
 
+// Delete referee invitation (Recruiter Dashboard)
+app.delete("/api/referees/:id", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  try {
+    const referee = await airtableService.getReferee(id);
+    if (!referee) {
+      return res.status(404).json({ success: false, error: "Referee not found" });
+    }
+
+    await airtableService.deleteReferee(id);
+
+    return res.status(200).json({ success: true, message: "Referee deleted successfully." });
+  } catch (err: any) {
+    console.error("Referee delete route error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+});
+
 // Reassign referee to a different contact (Recruiter Dashboard)
 app.patch("/api/referees/:id/reassign", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
