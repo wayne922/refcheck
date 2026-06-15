@@ -895,6 +895,29 @@ export const airtableService = {
     }
   },
 
+  deleteCandidate: async (id: string) => {
+    if (isMock) {
+      const idx = mockDb.candidates.findIndex((c: any) => c.id === id);
+      if (idx !== -1) {
+        mockDb.candidates.splice(idx, 1);
+        // Also delete associated referees
+        mockDb.referees = mockDb.referees.filter((r: any) => !r.candidate.includes(id));
+      }
+      return;
+    }
+    try {
+      // Fetch associated referees first to delete them
+      const referees = await airtableService.getRefereesForCandidate(id);
+      for (const r of referees) {
+        await base("Referees").destroy(r.id);
+      }
+      await base("Candidates").destroy(id);
+    } catch (err) {
+      console.error(`Airtable error deleting candidate ${id}:`, err);
+      throw err;
+    }
+  },
+
   updateCandidateStatus: async (id: string, status: string) => {
     if (isMock) {
       const idx = mockDb.candidates.findIndex((c: any) => c.id === id);

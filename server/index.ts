@@ -533,6 +533,32 @@ app.get("/api/candidates/:id", authMiddleware as any, async (req: AuthenticatedR
   }
 });
 
+// Delete candidate check (Recruiter Dashboard)
+app.delete("/api/candidates/:id", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  try {
+    const candidate = await airtableService.getCandidate(id);
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: "Candidate not found" });
+    }
+
+    // Scoping check for Recruiter role
+    if (req.user!.role === "Recruiter") {
+      const creatorId = Array.isArray(candidate.createdBy) ? candidate.createdBy[0] : candidate.createdBy;
+      if (creatorId !== req.user!.userId) {
+        return res.status(403).json({ success: false, error: "Access Denied: Recruiter not authorized to delete this candidate" });
+      }
+    }
+
+    await airtableService.deleteCandidate(id);
+
+    return res.status(200).json({ success: true, message: "Candidate deleted successfully." });
+  } catch (err: any) {
+    console.error("Candidate delete route error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+});
+
 // Fetch consolidated candidate vetting report (Sprint 7)
 app.get("/api/candidates/:id/report", authMiddleware as any, async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;

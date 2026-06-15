@@ -301,6 +301,29 @@ export function Candidates({ auth }: CandidatesProps) {
     }
   };
 
+  const handleDeleteCandidate = async (candidateId: string) => {
+    if (!window.confirm("Are you sure you want to delete this candidate check? This will also permanently remove all associated referees and response records.")) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${auth.token}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete candidate");
+      }
+      alert("Candidate check deleted successfully!");
+      setIsDetailOpen(false);
+      fetchCandidates();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete candidate.");
+    }
+  };
+
   const handleOpenReassign = (ref: Referee) => {
     setReassignRefereeId(ref.id);
     setReassignName(ref.fullName);
@@ -840,6 +863,15 @@ export function Candidates({ auth }: CandidatesProps) {
                   }`}>
                     {selectedCandidate.overallStatus}
                   </span>
+                  {!isViewer && (
+                    <button 
+                      onClick={() => handleDeleteCandidate(selectedCandidate.id)}
+                      className="p-1.5 rounded-full hover:bg-red-50 text-red-500 hover:text-red-600 transition-all cursor-pointer"
+                      title="Delete Candidate Check"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                   <button 
                     onClick={() => setIsDetailOpen(false)}
                     className="p-1 rounded-full hover:bg-secondary transition-all"
