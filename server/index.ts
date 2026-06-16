@@ -634,6 +634,7 @@ app.get("/api/candidates/:id/report", authMiddleware as any, async (req: Authent
 // Export candidate vetting report to PDF (Sprint 7)
 app.post("/api/reports/:id/export", authMiddleware as any, async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
+  const { refereeId } = req.body;
   try {
     const candidate = await airtableService.getCandidate(id);
     if (!candidate) {
@@ -657,6 +658,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     let ratingCount = 0;
 
     for (const ref of referees) {
+      if (refereeId && ref.id !== refereeId) continue;
       if (ref.formStatus === "Complete") {
         const responses = await airtableService.getResponsesForReferee(ref.id);
         if (responses && responses.length > 0) {
@@ -684,8 +686,11 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
 
     // Set headers
+    const filename = refereeId 
+      ? `Reference-Report-${referees.find((r: any) => r.id === refereeId)?.fullName.replace(/\s+/g, "-") || "Referee"}.pdf`
+      : `Vetting-Report-${candidate.fullName.replace(/\s+/g, "-")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Vetting-Report-${candidate.fullName.replace(/\s+/g, "-")}.pdf`);
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
     doc.pipe(res);
 
     // Helper: draw footer
@@ -704,7 +709,8 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     doc.rect(0, 0, 15, 842).fill("#1A73E8");
 
     // Title Block
-    doc.fillColor("#1A73E8").fontSize(28).font("Helvetica-Bold").text("VETTING & REFERENCE REPORT", 60, 150);
+    const docTitle = refereeId ? "INDIVIDUAL REFERENCE REPORT" : "VETTING & REFERENCE REPORT";
+    doc.fillColor("#1A73E8").fontSize(28).font("Helvetica-Bold").text(docTitle, 60, 150);
     doc.fillColor("#5F6368").fontSize(12).font("Helvetica").text("CONFIDENTIAL VERIFICATION DOSSIER", 60, 185);
     
     doc.strokeColor("#DADCE0").lineWidth(1).moveTo(60, 210).lineTo(545, 210).stroke();

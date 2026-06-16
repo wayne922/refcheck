@@ -1406,12 +1406,16 @@ export const airtableService = {
       return mockDb.refereeResponses.filter((r: any) => r.referee.includes(refereeId));
     }
     try {
+      const referee = await airtableService.getReferee(refereeId);
+      if (!referee) return [];
+      
       const records = await base("Referee_Responses")
         .select({
-          filterByFormula: `SEARCH('${refereeId}', ARRAYJOIN({referee})) > 0`
+          filterByFormula: `{referee} = '${referee.fullName}'`
         })
         .all();
-      return records.map((r: any) => ({ id: r.id, ...r.fields }));
+      const mapped = records.map((r: any) => ({ id: r.id, ...r.fields }));
+      return mapped.filter((r: any) => r.referee && r.referee.includes(refereeId));
     } catch (err) {
       console.error(`Airtable error fetching responses for referee ${refereeId}:`, err);
       throw err;

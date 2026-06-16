@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Trash2
+  Trash2,
+  Download
 } from "lucide-react";
 import { AuthState } from "../App.tsx";
 
@@ -165,21 +166,26 @@ export function Candidates({ auth }: CandidatesProps) {
     }
   };
 
-  const handleDownloadPdf = async (candidateId: string) => {
+  const handleDownloadPdf = async (candidateId: string, refereeId?: string, refereeName?: string) => {
     setDownloadingPdf(true);
     try {
       const response = await fetch(`/api/reports/${candidateId}/export`, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "Authorization": `Bearer ${auth.token}`
-        }
+        },
+        body: JSON.stringify({ refereeId })
       });
       if (!response.ok) throw new Error("Failed to export PDF");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Vetting-Report-${selectedCandidate?.fullName.replace(/\s+/g, "-")}.pdf`;
+      const downloadName = refereeName
+        ? `Reference-Report-${refereeName.replace(/\s+/g, "-")}.pdf`
+        : `Vetting-Report-${selectedCandidate?.fullName.replace(/\s+/g, "-")}.pdf`;
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1069,6 +1075,19 @@ export function Candidates({ auth }: CandidatesProps) {
                               </span>
                               <span className="flex items-center gap-1.5"><Phone className="w-4 h-4 text-muted-foreground/50" />{ref.phone}</span>
                             </div>
+                            {ref.formStatus === "Complete" && (
+                              <div className="pt-2 flex flex-wrap gap-2.5 border-t border-border/60">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadPdf(selectedCandidate.id, ref.id, ref.fullName)}
+                                  disabled={downloadingPdf}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 border border-primary hover:bg-primary/5 text-primary rounded-full text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  Download Reference Report
+                                </button>
+                              </div>
+                            )}
                             {/* Manual Controls (Employer Dashboard Actions) */}
                             {!isViewer && !isSubbed && ref.formStatus !== "Complete" && (
                               <div className="pt-2 flex flex-wrap gap-2.5 border-t border-border/60">
