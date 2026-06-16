@@ -892,10 +892,19 @@ export const airtableService = {
     try {
       const selectOptions: any = {};
       if (employerId) {
-        selectOptions.filterByFormula = `SEARCH('${employerId}', ARRAYJOIN({employer})) > 0`;
+        const employer = await airtableService.getEmployer(employerId);
+        if (employer) {
+          selectOptions.filterByFormula = `{employer} = '${employer.companyName}'`;
+        } else {
+          return [];
+        }
       }
       const records = await base("Candidates").select(selectOptions).all();
-      return records.map((r: any) => ({ id: r.id, createdAt: r._rawJson.createdTime || new Date().toISOString(), ...r.fields }));
+      const mapped = records.map((r: any) => ({ id: r.id, createdAt: r._rawJson.createdTime || new Date().toISOString(), ...r.fields }));
+      if (employerId) {
+        return mapped.filter((c: any) => c.employer && c.employer.includes(employerId));
+      }
+      return mapped;
     } catch (err) {
       console.error(`Airtable error fetching candidates:`, err);
       throw err;
@@ -1297,12 +1306,16 @@ export const airtableService = {
       return mockDb.referees.filter((r: any) => r.candidate.includes(candidateId));
     }
     try {
+      const candidate = await airtableService.getCandidate(candidateId);
+      if (!candidate) return [];
+      
       const records = await base("Referees")
         .select({
-          filterByFormula: `SEARCH('${candidateId}', ARRAYJOIN({candidate})) > 0`
+          filterByFormula: `{candidate} = '${candidate.fullName}'`
         })
         .all();
-      return records.map((r: any) => ({ id: r.id, ...r.fields }));
+      const mapped = records.map((r: any) => ({ id: r.id, ...r.fields }));
+      return mapped.filter((r: any) => r.candidate && r.candidate.includes(candidateId));
     } catch (err) {
       console.error(`Airtable error fetching candidate referees for ${candidateId}:`, err);
       throw err;
