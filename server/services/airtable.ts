@@ -59,6 +59,52 @@ async function safeUpdate(tableName: string, id: string, fields: any) {
 }
 
 // Seeded questions helper
+
+function normalizeTemplateName(name: string): string {
+  const mapping: Record<string, string> = {
+    "Standard 2-Referee": "General Professional",
+    "Executive 3-Referee": "Senior / Executive",
+    "Healthcare Premium": "Healthcare",
+    "Trades Standard": "Trades / Construction",
+    "Early Childhood / ECE": "Early Childhood / ECE"
+  };
+  return mapping[name] || name;
+}
+
+async function ensureSystemTemplatesSeeded() {
+  if (isMock) return;
+  
+  const systemTemplates = [
+    { Name: "General Professional", Description: "Standard reference check, suitable for any professional role", Industry: "General", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("General Professional")), Branching_Rules_JSON: "[]" },
+    { Name: "Senior / Executive", Description: "Leadership focus, board-level and C-suite roles", Industry: "Executive", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Senior / Executive")), Branching_Rules_JSON: "[]" },
+    { Name: "Early Childhood / ECE", Description: "NZ childcare sector, working with children focus", Industry: "ECE", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Early Childhood / ECE")), Branching_Rules_JSON: "[]" },
+    { Name: "Healthcare", Description: "Clinical environment, patient safety focus", Industry: "Healthcare", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Healthcare")), Branching_Rules_JSON: "[]" },
+    { Name: "Trades / Construction", Description: "Physical safety, site compliance, productivity", Industry: "Trades", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Trades / Construction")), Branching_Rules_JSON: "[]" }
+  ];
+
+  try {
+    const existingRecords = await base("Questionnaire_Templates").select({ maxRecords: 100 }).all();
+    const existingNames = new Set(existingRecords.map((r: any) => r.fields.Name));
+
+    for (const t of systemTemplates) {
+      if (!existingNames.has(t.Name)) {
+        console.log(`[Airtable Auto-Seed] Seeding template "${t.Name}"...`);
+        await safeCreate("Questionnaire_Templates", {
+          Name: t.Name,
+          Description: t.Description,
+          Industry: t.Industry,
+          Is_System_Template: t.Is_System_Template,
+          Status: t.Status,
+          Questions_JSON: t.Questions_JSON,
+          Branching_Rules_JSON: t.Branching_Rules_JSON
+        });
+      }
+    }
+  } catch (err: any) {
+    console.error("[Airtable Auto-Seed Error] Failed to ensure system templates are seeded:", err.message);
+  }
+}
+
 const createQuestionsSeed = (templateName: string): any[] => {
   switch (templateName) {
     case "General Professional":
@@ -1000,6 +1046,7 @@ export const airtableService = {
       );
     }
     try {
+      await ensureSystemTemplatesSeeded();
       const records = await base("Questionnaire_Templates")
         .select({
           filterByFormula: `OR({Is_System_Template} = 1, SEARCH('${employerId}', ARRAYJOIN({Created_By_Employer})))`
@@ -1026,20 +1073,22 @@ export const airtableService = {
   },
 
   getQuestionnaireTemplateByName: async (name: string) => {
+    const normalized = normalizeTemplateName(name);
     if (isMock) {
-      return mockDb.questionnaireTemplates.find((t: any) => t.Name === name) || mockDb.questionnaireTemplates[0];
+      return mockDb.questionnaireTemplates.find((t: any) => t.Name === normalized) || mockDb.questionnaireTemplates[0];
     }
     try {
+      await ensureSystemTemplatesSeeded();
       const records = await base("Questionnaire_Templates")
         .select({
-          filterByFormula: `{Name} = '${name}'`,
+          filterByFormula: `{Name} = '${normalized}'`,
           maxRecords: 1
         })
         .firstPage();
       if (records.length === 0) return null;
       return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
     } catch (err) {
-      console.error(`Airtable error fetching template by name ${name}:`, err);
+      console.error(`Airtable error fetching template by name ${normalized}:`, err);
       throw err;
     }
   },
