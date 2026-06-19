@@ -682,8 +682,8 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     const template = await airtableService.getQuestionnaireTemplateByName(candidate.assignedPackage);
     const questions = template ? JSON.parse(template.Questions_JSON) : [];
 
-    // Create PDF Kit Document
-    const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
+    // Create PDF Kit Document (clean, white pages, normal borders - no giant blue side-blocks)
+    const doc = new PDFDocument({ margin: 40, size: "A4", bufferPages: true });
 
     // Set headers
     const filename = refereeId 
@@ -698,155 +698,277 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       d.fontSize(8).fillColor("#5F6368");
       d.text(
         `Reference check conducted via ${brandedSenderName} | Page ${pageNum} of ${totalPages}`,
-        50,
-        780,
-        { align: "center", width: 495 }
+        40,
+        800,
+        { align: "center", width: 515 }
       );
     };
 
-    // --- PAGE 1: COVER PAGE ---
-    // Background branding line
-    doc.rect(0, 0, 15, 842).fill("#1A73E8");
+    // Dynamic Header Logo & Powered Box (rendered on every page)
+    const drawPageHeader = (d: any) => {
+      // Left header: Logo / Brand
+      d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 40, 30);
+      
+      // Right header box: Powered by Checkmate-style card
+      d.fillColor("#F8F9FA").rect(370, 20, 185, 45).fill();
+      d.strokeColor("#DADCE0").lineWidth(0.5).rect(370, 20, 185, 45).stroke();
+      
+      d.fillColor("#5F6368").fontSize(7).font("Helvetica").text("POWERED BY", 380, 25);
+      d.fillColor("#1A73E8").fontSize(9).font("Helvetica-Bold").text("✔ Checkmate", 380, 34);
+      d.fillColor("#70757A").fontSize(7).font("Helvetica").text("team@checkmate.tech  |  checkmate.tech", 380, 48);
 
-    // Title Block
-    const docTitle = refereeId ? "INDIVIDUAL REFERENCE REPORT" : "VETTING & REFERENCE REPORT";
-    doc.fillColor("#1A73E8").fontSize(28).font("Helvetica-Bold").text(docTitle, 60, 150);
-    doc.fillColor("#5F6368").fontSize(12).font("Helvetica").text("CONFIDENTIAL VERIFICATION DOSSIER", 60, 185);
+      d.strokeColor("#DADCE0").lineWidth(1).moveTo(40, 75).lineTo(555, 75).stroke();
+    };
+
+    // Draw page header on the first page
+    drawPageHeader(doc);
+
+    // --- CANDIDATE SUMMARY ---
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CANDIDATE SUMMARY", 40, 95);
     
-    doc.strokeColor("#DADCE0").lineWidth(1).moveTo(60, 210).lineTo(545, 210).stroke();
+    // Summary Grid Layout (8 boxes of details)
+    const candidateGrid = [
+      { label: "Candidate Name", value: candidate.fullName },
+      { label: "Role & Department", value: candidate.roleAppliedFor || "Teacher" },
+      { label: "Email", value: candidate.email },
+      { label: "Mobile", value: candidate.phone || "None" },
+      { label: "Report Type", value: refereeId ? "Individual Reference" : "Reference Check" },
+      { label: "Created", value: candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A" },
+      { label: "Completed", value: candidate.candidateFormSubmittedAt ? new Date(candidate.candidateFormSubmittedAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A" },
+      { label: "To Complete", value: "3 days" }
+    ];
 
-    // Candidate details
-    doc.fillColor("#1F1F1F").fontSize(18).font("Helvetica-Bold").text(candidate.fullName, 60, 240);
-    doc.fontSize(12).font("Helvetica").fillColor("#5F6368").text(`Role Applied: ${candidate.roleAppliedFor}`, 60, 265);
-    
-    // Meta box
-    doc.rect(60, 310, 485, 140).fill("#F8F9FA");
-    doc.strokeColor("#DADCE0").lineWidth(1).rect(60, 310, 485, 140).stroke();
+    let gridY = 110;
+    candidateGrid.forEach((item, index) => {
+      const col = index % 4;
+      const row = Math.floor(index / 4);
+      const x = 40 + col * 131;
+      const y = gridY + row * 45;
 
-    doc.fillColor("#1F1F1F").fontSize(10).font("Helvetica-Bold");
-    doc.text("Report Details", 80, 330);
-    doc.font("Helvetica").fillColor("#5F6368");
-    doc.text(`Employer Name:      ${employer ? employer.companyName : "Candidex Recruitment"}`, 80, 355);
-    doc.text(`Vetting Package:    ${candidate.assignedPackage}`, 80, 375);
-    doc.text(`Overall Status:     ${candidate.overallStatus}`, 80, 395);
-    doc.text(`Generated Date:     ${new Date().toLocaleDateString()}`, 80, 415);
+      doc.fillColor("#F8F9FA").rect(x, y, 122, 38).fill();
+      doc.strokeColor("#E8EAED").lineWidth(0.5).rect(x, y, 122, 38).stroke();
 
-    // Employer Logo placeholder/indicator
-    if (employer && employer.logoUrl) {
-      doc.fillColor("#1A73E8").fontSize(10).font("Helvetica-Bold").text("[ Branded Logo Connected ]", 60, 500);
-    } else {
-      doc.rect(60, 500, 120, 40).fill("#F1F3F4");
-      doc.fillColor("#5F6368").fontSize(9).font("Helvetica-Oblique").text("No Logo Uploaded", 80, 515);
-    }
+      doc.fillColor("#70757A").fontSize(7).font("Helvetica-Bold").text(item.label.toUpperCase(), x + 8, y + 8);
+      doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica").text(item.value, x + 8, y + 20, { width: 108, ellipsis: true });
+    });
 
-    // --- PAGE 2: EXECUTIVE SUMMARY & FRAUD ALERTS ---
-    doc.addPage();
-    doc.rect(0, 0, 15, 842).fill("#1A73E8");
+    // --- REPORT SUMMARY (REFEREE CARDS) ---
+    let summaryY = gridY + 100;
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("REPORT SUMMARY", 40, summaryY);
+    summaryY += 15;
 
-    doc.fillColor("#1A73E8").fontSize(20).font("Helvetica-Bold").text("Executive Summary", 60, 50);
-    doc.strokeColor("#DADCE0").lineWidth(1).moveTo(60, 80).lineTo(545, 80).stroke();
-
-    // Overall metrics
-    doc.rect(60, 100, 230, 80).fill("#F8F9FA");
-    doc.strokeColor("#DADCE0").rect(60, 100, 230, 80).stroke();
-    doc.fillColor("#1F1F1F").fontSize(10).font("Helvetica-Bold").text("OVERALL RATING", 75, 115);
-    doc.fillColor("#1A73E8").fontSize(22).font("Helvetica-Bold").text(overallAverageRating !== null ? `${overallAverageRating} / 5.0` : "N/A", 75, 135);
-
-    doc.rect(315, 100, 230, 80).fill("#F8F9FA");
-    doc.strokeColor("#DADCE0").rect(315, 100, 230, 80).stroke();
-    doc.fillColor("#1F1F1F").fontSize(10).font("Helvetica-Bold").text("COMPLETED CHECKS", 330, 115);
-    doc.fillColor("#1A73E8").fontSize(22).font("Helvetica-Bold").text(`${completedReferees.length} / ${referees.length} Referees`, 330, 135);
-
-    // Fraud alerts
-    let startY = 210;
-    const flaggedReferees = completedReferees.filter(r => r.response.fraudFlags && r.response.fraudFlags.trim() !== "");
-    if (flaggedReferees.length > 0) {
-      doc.rect(60, startY, 485, 150).fill("#D93025").opacity(0.05).fill();
-      doc.opacity(1.0); // Reset opacity
-      
-      doc.strokeColor("#D93025").lineWidth(1.5).rect(60, startY, 485, 150).stroke();
-      
-      doc.fillColor("#D93025").fontSize(12).font("Helvetica-Bold").text("⚠️ SECURITY ALERT: FRAUD HEURISTICS TRIGGERED", 75, startY + 15);
-      
-      let alertY = startY + 40;
-      doc.fillColor("#1F1F1F").fontSize(9).font("Helvetica");
-      for (const r of flaggedReferees) {
-        const flags = r.response.fraudFlags.split(",").filter(Boolean);
-        const details = JSON.parse(r.response.fraudFlagDetails || "{}");
-        for (const flag of flags) {
-          doc.text(`• [${flag.replace("_", " ").toUpperCase()}] ${r.fullName}: ${details[flag]}`, 75, alertY, { width: 450 });
-          alertY += 22;
-        }
-      }
-      startY += 170;
-    } else {
-      doc.fillColor("#1E8E3E").fontSize(11).font("Helvetica-Bold").text("✓ No fraud indicators detected on any submissions.", 60, startY);
-      startY += 30;
-    }
-
-    // --- REFEREE DETAIL PAGES ---
     for (const ref of completedReferees) {
-      doc.addPage();
-      doc.rect(0, 0, 15, 842).fill("#1A73E8");
+      // Draw single row for the referee
+      doc.fillColor("#F8F9FA").rect(40, summaryY, 515, 45).fill();
+      doc.strokeColor("#DADCE0").lineWidth(0.5).rect(40, summaryY, 515, 45).stroke();
 
-      doc.fillColor("#1A73E8").fontSize(16).font("Helvetica-Bold").text(`Referee Vetting: ${ref.fullName}`, 60, 50);
-      doc.strokeColor("#DADCE0").lineWidth(1).moveTo(60, 75).lineTo(545, 75).stroke();
+      // Ref details columns
+      doc.fillColor("#70757A").fontSize(7).font("Helvetica-Bold").text("REFEREE", 50, summaryY + 8);
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text(ref.fullName, 50, summaryY + 18);
+      doc.fillColor("#5F6368").fontSize(7).font("Helvetica").text(ref.relationship, 50, summaryY + 28);
 
-      // Bio details box
-      doc.rect(60, 90, 485, 80).fill("#F8F9FA");
-      doc.strokeColor("#DADCE0").rect(60, 90, 485, 80).stroke();
+      doc.fillColor("#70757A").fontSize(7).font("Helvetica-Bold").text("EMAIL", 180, summaryY + 8);
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 180, summaryY + 18);
+      const isPersonal = ref.email.includes("gmail") || ref.email.includes("yahoo") || ref.email.includes("outlook") || ref.email.includes("hotmail");
+      if (isPersonal) {
+        doc.fillColor("#D93025").fontSize(6).font("Helvetica-Bold").text("▲ NON-COMPANY EMAIL", 180, summaryY + 28);
+      } else {
+        doc.fillColor("#1E8E3E").fontSize(6).font("Helvetica-Bold").text("✔ WORK EMAIL", 180, summaryY + 28);
+      }
 
-      doc.fillColor("#1F1F1F").fontSize(9).font("Helvetica-Bold");
-      doc.text("Relationship:", 75, 105);
-      doc.text("Stated Company:", 75, 120);
-      doc.text("Stated Job Title:", 75, 135);
-      doc.text("Email & Phone:", 75, 150);
+      doc.fillColor("#70757A").fontSize(7).font("Helvetica-Bold").text("PHONE", 300, summaryY + 8);
+      doc.fillColor("#1A73E8").fontSize(8).font("Helvetica").text(ref.phone || "None", 300, summaryY + 18);
 
-      doc.font("Helvetica").fillColor("#5F6368");
-      doc.text(ref.relationship, 170, 105);
-      doc.text(ref.employerName, 170, 120);
-      doc.text(ref.jobTitle, 170, 135);
-      doc.text(`${ref.email} | ${ref.phone}`, 170, 150);
+      doc.fillColor("#70757A").fontSize(7).font("Helvetica-Bold").text("IP ADDRESS", 440, summaryY + 8);
+      const ip = ref.response?.ipAddress || "127.0.0.1";
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 440, summaryY + 18);
+      const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
+      if (isSharedIp) {
+        doc.fillColor("#D93025").fontSize(6).font("Helvetica-Bold").text("▲ SHARED IP ADDRESS", 440, summaryY + 28);
+      } else {
+        doc.fillColor("#1E8E3E").fontSize(6).font("Helvetica-Bold").text("✔ UNIQUE IP ADDRESS", 440, summaryY + 28);
+      }
 
-      // Render Q&A
-      let qaY = 190;
+      summaryY += 55;
+    }
+
+    // --- VERIFICATION QUESTIONS (Side-by-Side Cards) ---
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("VERIFICATION QUESTIONS", 40, summaryY + 5);
+    let qaY = summaryY + 20;
+
+    // Define verification QIDs mapping (to match Candidate's stated info)
+    const verificationMap: Record<string, { candidateLabel: string, refLabel: string, field: string }> = {
+      "q_gp1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "employerName" },
+      "q_gp2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
+      "q_gp3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" }, // datesFrom / datesTo combo
+      "q_gp4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
+      
+      "q_ece_1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "employerName" },
+      "q_ece_2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
+      "q_ece_3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" },
+      "q_ece_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" }
+    };
+
+    // Filter verification questions
+    const verificationQIds = ["q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4"];
+    const verificationQuestions = questions.filter((q: any) => verificationQIds.includes(q.id));
+    const normalQuestions = questions.filter((q: any) => !verificationQIds.includes(q.id));
+
+    let verIndex = 1;
+    for (const ref of completedReferees) {
       let refAnswers = [];
       try {
         refAnswers = JSON.parse(ref.response.answersJson || "[]");
-      } catch (e) {
-        console.error("Failed to parse answersJson for PDF:", e);
-      }
+      } catch (e) {}
 
-      doc.fillColor("#1A73E8").fontSize(11).font("Helvetica-Bold").text("Questionnaire Responses", 60, qaY);
-      qaY += 20;
-
-      for (const q of questions) {
+      for (const q of verificationQuestions) {
+        const mapping = verificationMap[q.id];
         const ans = refAnswers.find((a: any) => a.id === q.id);
-        const ansValue = ans ? ans.value : null;
+        const ansVal = ans ? String(ans.value) : "No response provided.";
 
-        // Check page limits to prevent overflow
-        if (qaY > 700) {
-          doc.addPage();
-          doc.rect(0, 0, 15, 842).fill("#1A73E8");
-          qaY = 50;
-        }
-
-        doc.fillColor("#1F1F1F").fontSize(10).font("Helvetica-Bold").text(q.label, 60, qaY, { width: 485 });
-        qaY += doc.heightOfString(q.label, { width: 485 }) + 4;
-
-        let ansText = "No response provided.";
-        if (ansValue !== null && ansValue !== undefined) {
-          if (q.type === "rating") {
-            ansText = `★ `.repeat(Number(ansValue)) + `☆ `.repeat(5 - Number(ansValue)) + ` (${ansValue}/5)`;
+        // Resolve candidate's stated value
+        let candidateVal = "Not provided";
+        if (mapping) {
+          if (mapping.field === "datesFrom") {
+            candidateVal = `${ref.datesFrom || ""} to ${ref.datesTo || "Present"}`;
           } else {
-            ansText = String(ansValue);
+            candidateVal = (ref as any)[mapping.field] || "Not provided";
           }
         }
 
-        doc.fillColor("#5F6368").fontSize(9).font("Helvetica").text(ansText, 70, qaY, { width: 475 });
-        qaY += doc.heightOfString(ansText, { width: 475 }) + 15;
+        // Check overflow for the next double-box card (approx height 65)
+        if (qaY > 740) {
+          doc.addPage();
+          drawPageHeader(doc);
+          qaY = 90;
+        }
+
+        // Draw question index & text
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
+        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10);
+        
+        qaY += 23;
+
+        // Candidate box (Left)
+        doc.fillColor("#F8F9FA").rect(40, qaY, 250, 36).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).rect(40, qaY, 250, 36).stroke();
+        doc.fillColor("#9AA0A6").fontSize(6).font("Helvetica-Bold").text(mapping?.candidateLabel.toUpperCase() || "CANDIDATE STATED", 48, qaY + 6);
+        doc.fillColor("#5F6368").fontSize(8).font("Helvetica").text(candidateVal, 48, qaY + 16, { width: 234, ellipsis: true });
+
+        // Referee box (Right)
+        doc.fillColor("#FFFFFF").rect(305, qaY, 250, 36).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).rect(305, qaY, 250, 36).stroke();
+        doc.fillColor("#1A73E8").fontSize(6).font("Helvetica-Bold").text(mapping?.refLabel.toUpperCase() || "REFEREE ANSWER", 313, qaY + 6);
+        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ansVal, 313, qaY + 16, { width: 234, ellipsis: true });
+
+        qaY += 46;
+        verIndex++;
       }
     }
+
+    // --- CUSTOM & REMAINING QUESTIONS ---
+    // Start normal questions section header
+    if (qaY > 720) {
+      doc.addPage();
+      drawPageHeader(doc);
+      qaY = 90;
+    }
+    
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CUSTOM QUESTIONS", 40, qaY);
+    qaY += 15;
+
+    for (const ref of completedReferees) {
+      let refAnswers = [];
+      try {
+        refAnswers = JSON.parse(ref.response.answersJson || "[]");
+      } catch (e) {}
+
+      for (const q of normalQuestions) {
+        const ans = refAnswers.find((a: any) => a.id === q.id);
+        const ansValue = ans ? ans.value : null;
+
+        // Render rating scales vs text cards
+        if (q.type === "rating") {
+          if (qaY > 740) {
+            doc.addPage();
+            drawPageHeader(doc);
+            qaY = 90;
+          }
+
+          doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
+          doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10);
+          qaY += 24;
+
+          // Draw horizontal number bar (1 2 3 4 5)
+          doc.fillColor("#F8F9FA").rect(40, qaY, 515, 26).fill();
+          doc.strokeColor("#E8EAED").lineWidth(0.5).rect(40, qaY, 515, 26).stroke();
+
+          const rating = Number(ansValue) || 0;
+          for (let i = 1; i <= 5; i++) {
+            const numX = 55 + (i - 1) * 30;
+            if (i === rating) {
+              doc.fillColor("#1A73E8").fontSize(10).font("Helvetica-Bold").text(String(i), numX, qaY + 8);
+            } else {
+              doc.fillColor("#BDC1C6").fontSize(10).font("Helvetica").text(String(i), numX, qaY + 8);
+            }
+          }
+
+          qaY += 36;
+        } else {
+          // Open-text questions: calculate height dynamic
+          let ansText = "No response provided.";
+          if (ansValue !== null && ansValue !== undefined) {
+            ansText = String(ansValue);
+          }
+
+          const labelHeight = doc.heightOfString(q.label, { width: 515 });
+          const valHeight = doc.heightOfString(ansText, { width: 495 });
+          const totalBlockHeight = 15 + labelHeight + 10 + valHeight + 15 + 10;
+
+          if (qaY + totalBlockHeight > 760) {
+            doc.addPage();
+            drawPageHeader(doc);
+            qaY = 90;
+          }
+
+          // Question label
+          doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
+          doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10, { width: 515 });
+          
+          qaY += 12 + labelHeight;
+
+          // Answer card details
+          doc.fillColor("#FFFFFF").rect(40, qaY, 515, valHeight + 20).fill();
+          doc.strokeColor("#DADCE0").lineWidth(0.5).rect(40, qaY, 515, valHeight + 20).stroke();
+
+          // Left indicator line
+          doc.strokeColor("#DADCE0").lineWidth(1.5).moveTo(48, qaY + 6).lineTo(48, qaY + 14 + valHeight).stroke();
+
+          // Text content
+          doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 56, qaY + 10, { width: 485, lineGap: 2 });
+          
+          qaY += valHeight + 32;
+        }
+        verIndex++;
+      }
+    }
+
+    // --- CHECKMATE DISCLAIMER BOX ---
+    const disclaimerText = "Checkmate is committed to providing accurate and up-to-date information to the best of its abilities. However, please note that the information presented by Checkmate may not always be entirely accurate, complete, or current. Due to the dynamic nature of information and the vast amount of data available, it is possible that some information may be inaccurate, outdated, or subject to change. Checkmate does not assume any responsibility or liability for any errors, inaccuracies, omissions, or inconsistencies in the information provided. Users rely on the information provided by Checkmate at their own risk.";
+    const discHeight = doc.heightOfString(disclaimerText, { width: 495 });
+    
+    if (qaY + discHeight + 50 > 760) {
+      doc.addPage();
+      drawPageHeader(doc);
+      qaY = 90;
+    }
+
+    qaY += 15;
+    doc.fillColor("#FFFFFF").rect(40, qaY, 515, discHeight + 25).fill();
+    doc.strokeColor("#DADCE0").lineWidth(0.5).rect(40, qaY, 515, discHeight + 25).stroke();
+
+    doc.fillColor("#70757A").fontSize(6.5).font("Helvetica-Bold").text("CHECKMATE DISCLAIMER", 50, qaY + 8);
+    doc.fillColor("#70757A").fontSize(7).font("Helvetica").text(disclaimerText, 50, qaY + 18, { width: 495, lineGap: 1.5 });
 
     // --- FINALIZE FOOTERS ---
     const pages = doc.bufferedPageRange();
