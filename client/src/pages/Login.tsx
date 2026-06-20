@@ -131,6 +131,12 @@ export function Login({ onLogin }: LoginProps) {
           </p>
         </div>
 
+        {error && (
+          <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg border border-destructive/20 font-medium mb-6">
+            {error}
+          </div>
+        )}
+
         {googleClientId ? (
           <div className="flex flex-col items-center w-full mb-6">
             <div id="google-signin-button" className="w-full flex justify-center"></div>
@@ -147,55 +153,53 @@ export function Login({ onLogin }: LoginProps) {
           </button>
         )}
 
-        <div className="relative flex py-3 items-center mb-6">
-          <div className="flex-grow border-t border-border"></div>
-          <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Developer Log In</span>
-          <div className="flex-grow border-t border-border"></div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-destructive/10 text-destructive text-xs p-3 rounded-lg border border-destructive/20 font-medium">
-              {error}
+        {!googleClientId && (
+          <>
+            <div className="relative flex py-3 items-center mb-6">
+              <div className="flex-grow border-t border-border"></div>
+              <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Developer Log In</span>
+              <div className="flex-grow border-t border-border"></div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-              Company Name
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Acme Agency"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              disabled={loading}
-              className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Acme Agency"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                />
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-              Email Address
-            </label>
-            <input
-              type="email"
-              placeholder="e.g. recruiter@company.co.nz"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. recruiter@company.co.nz"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90 shadow-md shadow-primary/10 transition-all cursor-pointer disabled:opacity-50"
-          >
-            {loading ? "Creating Recruiter Account..." : "Create Recruiter Account"}
-          </button>
-        </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90 shadow-md shadow-primary/10 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {loading ? "Creating Recruiter Account..." : "Create Recruiter Account"}
+              </button>
+            </form>
+          </>
+        )}
 
         <p className="text-center text-[10px] text-muted-foreground mt-8">
           RefCheck by Candidex • NZ & AU Compliance Safeguarded
