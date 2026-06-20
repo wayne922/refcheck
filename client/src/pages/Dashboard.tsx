@@ -25,6 +25,7 @@ export function Dashboard({ auth }: DashboardProps) {
   });
   const [recentCandidates, setRecentCandidates] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [isMock, setIsMock] = React.useState<boolean>(true);
 
   React.useEffect(() => {
     // Fetch metrics
@@ -37,6 +38,9 @@ export function Dashboard({ auth }: DashboardProps) {
       .then(data => {
         if (data.success) {
           setMetrics(data.metrics);
+          if (data.isMock !== undefined) {
+            setIsMock(data.isMock);
+          }
         }
       })
       .catch(err => console.error("Error fetching metrics:", err));
@@ -118,52 +122,85 @@ export function Dashboard({ auth }: DashboardProps) {
         )}
       </div>
 
-      {/* Interactive Demo Banner */}
-      <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl relative overflow-hidden group hover:shadow-md transition-all duration-300">
-        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-primary/10 text-primary rounded-xl flex-shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-              💡 Interactive Workflow Demo Guide
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
-              Experience the complete RefCheck workflow end-to-end using our pre-configured candidate <strong>David Miller</strong>:
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
-                <span className="text-[10px] font-bold text-primary uppercase">Step 1: Candidate Nomination</span>
-                <p className="text-[11px] text-muted-foreground">Go to the Candidate Portal to consent and submit referee details.</p>
-                <a 
-                  href="/c/mock-token-david" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5"
-                >
-                  Open Candidate Form
-                  <ArrowUpRight className="w-3 h-3" />
-                </a>
-              </div>
-              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
-                <span className="text-[10px] font-bold text-amber-600 uppercase">Step 2: Referee Questionnaire</span>
-                <p className="text-[11px] text-muted-foreground">Open David Miller under <strong>Candidates</strong> and copy the generated Vetting Link to answer the questionnaire.</p>
-              </div>
-              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
-                <span className="text-[10px] font-bold text-green-600 uppercase">Step 3: Verification & PDF</span>
-                <p className="text-[11px] text-muted-foreground">Once answered, the check completes. View the vetting report and download the polished PDF.</p>
-                <Link href="/candidates">
-                  <a className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5">
-                    View Candidates Table
+      {/* Interactive Demo Banner / Live Mode Alert */}
+      {isMock ? (
+        <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl relative overflow-hidden group hover:shadow-md transition-all duration-300">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-primary/10 text-primary rounded-xl flex-shrink-0">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                💡 Interactive Workflow Demo Guide
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+                Experience the complete RefCheck workflow end-to-end using our pre-configured candidate <strong>David Miller</strong>:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-primary uppercase">Step 1: Candidate Nomination</span>
+                  <p className="text-[11px] text-muted-foreground">Go to the Candidate Portal to consent and submit referee details.</p>
+                  <a 
+                    href="/c/mock-token-david" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5"
+                  >
+                    Open Candidate Form
                     <ArrowUpRight className="w-3 h-3" />
                   </a>
-                </Link>
+                </div>
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-amber-600 uppercase">Step 2: Referee Questionnaire</span>
+                  <p className="text-[11px] text-muted-foreground">Open David Miller under <strong>Candidates</strong> and copy the generated Vetting Link to answer the questionnaire.</p>
+                </div>
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-green-600 uppercase">Step 3: Verification & PDF</span>
+                  <p className="text-[11px] text-muted-foreground">Once answered, the check completes. View the vetting report and download the polished PDF.</p>
+                  <Link href="/candidates">
+                    <a className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5">
+                      View Candidates Table
+                      <ArrowUpRight className="w-3 h-3" />
+                    </a>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-green-500/5 border border-green-500/20 p-5 rounded-2xl relative overflow-hidden group hover:shadow-md transition-all duration-300">
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-green-500/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-green-600/10 text-green-600 rounded-xl flex-shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                ⚡ Live Airtable Integration Connected
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+                RefCheck is running in <strong>Live Mode</strong> connected directly to your Airtable base. To test the end-to-end reference checking flow:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-primary uppercase">1. Create a Candidate</span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Click the <strong>New Candidate</strong> button at the top right to register a new candidate check in your Airtable database.
+                  </p>
+                </div>
+                <div className="bg-card border border-border p-3.5 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-green-600 uppercase">2. Use Live Vetting Links</span>
+                  <p className="text-[11px] text-muted-foreground">
+                    Open candidate details in the <strong>Candidates</strong> tab to copy the candidate self-nomination link, fill it out, and track the referee responses in real-time.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi) => {

@@ -416,7 +416,8 @@ app.get("/api/dashboard/metrics", authMiddleware as any, async (req: Authenticat
         completionRate,
         flaggedRate,
         activeChecksCount
-      }
+      },
+      isMock: airtableService.isMockMode()
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message || "Server Error" });
