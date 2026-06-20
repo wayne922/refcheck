@@ -701,10 +701,62 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       d.text(
         `Reference check conducted via ${brandedSenderName} | Page ${pageNum} of ${totalPages}`,
         40,
-        810,
-        { align: "center", width: 515 }
+        810
       );
       d.page.margins.bottom = oldBottom;
+    };
+
+    // Helper to draw ISO seal and QR code in header
+    const drawISOBadge = (d: any, x: number, y: number) => {
+      d.save();
+      // Draw border
+      d.fillColor("#FFFFFF").roundedRect(x, y, 40, 45, 4).fill();
+      d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 40, 45, 4).stroke();
+      
+      // Draw globe icon
+      d.strokeColor("#7E22CE").lineWidth(0.75);
+      d.circle(x + 20, y + 18, 10).stroke();
+      d.ellipse(x + 20, y + 18, 10, 4).stroke();
+      d.ellipse(x + 20, y + 18, 4, 10).stroke();
+      
+      // Write "ISO"
+      d.fillColor("#7E22CE").fontSize(7).font("Helvetica-Bold");
+      const tw = d.widthOfString("ISO");
+      d.text("ISO", x + 20 - tw / 2, y + 34);
+      d.restore();
+    };
+
+    const drawQRCode = (d: any, x: number, y: number) => {
+      d.save();
+      // Draw border
+      d.fillColor("#FFFFFF").roundedRect(x, y, 40, 45, 4).fill();
+      d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 40, 45, 4).stroke();
+      
+      // Draw simulated QR code dot grid
+      d.fillColor("#1A1F2C");
+      const size = 2;
+      // Draw square corners
+      d.rect(x + 8, y + 8, 8, 8).fill();
+      d.fillColor("#FFFFFF").rect(x + 10, y + 10, 4, 4).fill();
+      d.fillColor("#1A1F2C").rect(x + 11, y + 11, 2, 2).fill();
+      
+      d.rect(x + 24, y + 8, 8, 8).fill();
+      d.fillColor("#FFFFFF").rect(x + 26, y + 10, 4, 4).fill();
+      d.fillColor("#1A1F2C").rect(x + 27, y + 11, 2, 2).fill();
+      
+      d.rect(x + 8, y + 26, 8, 8).fill();
+      d.fillColor("#FFFFFF").rect(x + 10, y + 28, 4, 4).fill();
+      d.fillColor("#1A1F2C").rect(x + 11, y + 29, 2, 2).fill();
+      
+      // Draw some random modules
+      d.rect(x + 20, y + 10, size, size).fill();
+      d.rect(x + 20, y + 14, size, size).fill();
+      d.rect(x + 24, y + 20, size, size).fill();
+      d.rect(x + 28, y + 20, size, size).fill();
+      d.rect(x + 20, y + 24, size, size).fill();
+      d.rect(x + 24, y + 28, size, size).fill();
+      d.rect(x + 28, y + 28, size, size).fill();
+      d.restore();
     };
 
     // Dynamic Header Logo & Powered Box (rendered on every page)
@@ -712,13 +764,20 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       // Left header: Logo / Brand
       d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 40, 30);
       
-      // Right header box: Powered by Checkmate-style card
-      d.fillColor("#F8F9FA").rect(370, 20, 185, 45).fill();
-      d.strokeColor("#DADCE0").lineWidth(0.5).rect(370, 20, 185, 45).stroke();
+      // Right header boxes
+      // 1. Powered by RefCheck card
+      d.fillColor("#F8F9FA").roundedRect(310, 20, 145, 45, 4).fill();
+      d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(310, 20, 145, 45, 4).stroke();
       
-      d.fillColor("#5F6368").fontSize(7).font("Helvetica").text("POWERED BY", 380, 25);
-      d.fillColor("#1A73E8").fontSize(9).font("Helvetica-Bold").text("✔ Checkmate", 380, 34);
-      d.fillColor("#70757A").fontSize(7).font("Helvetica").text("team@checkmate.tech  |  checkmate.tech", 380, 48);
+      d.fillColor("#5F6368").fontSize(6.5).font("Helvetica").text("POWERED BY", 320, 26);
+      d.fillColor("#7E22CE").fontSize(9).font("Helvetica-Bold").text("✔ RefCheck", 320, 34);
+      d.fillColor("#70757A").fontSize(6).font("Helvetica").text("team@refcheck.tech  |  refcheck.tech", 320, 48);
+
+      // 2. ISO seal badge
+      drawISOBadge(d, 465, 20);
+
+      // 3. QR code badge
+      drawQRCode(d, 515, 20);
 
       d.strokeColor("#DADCE0").lineWidth(1).moveTo(40, 75).lineTo(555, 75).stroke();
     };
@@ -730,27 +789,27 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     const drawPill = (d: any, x: number, y: number, text: string, bgColor: string, textColor: string) => {
       d.save();
       d.fontSize(6).font("Helvetica-Bold");
-      const labelWidth = d.widthOfString(text) + 10;
+      const labelWidth = d.widthOfString(text) + 8;
       d.fillColor(bgColor).roundedRect(x, y, labelWidth, 12, 3).fill();
-      d.fillColor(textColor).text(text, x + 5, y + 3);
+      d.fillColor(textColor).text(text, x + 4, y + 3);
       d.restore();
     };
 
     const drawStatusPill = (d: any, x: number, y: number, text: string, status: "success" | "warning" | "neutral") => {
       d.save();
-      let bgColor = "#F1F3F4";
-      let textColor = "#5F6368";
+      let bgColor = "#F3F4F6";
+      let textColor = "#4B5563";
       if (status === "success") {
-        bgColor = "#E6F4EA";
-        textColor = "#137333";
+        bgColor = "#F0FDF4";
+        textColor = "#16A34A";
       } else if (status === "warning") {
-        bgColor = "#FCE8E6";
-        textColor = "#C5221F";
+        bgColor = "#FFF7ED";
+        textColor = "#EA580C";
       }
       d.fontSize(6).font("Helvetica-Bold");
-      const width = d.widthOfString(text) + 10;
+      const width = d.widthOfString(text) + 8;
       d.fillColor(bgColor).roundedRect(x, y, width, 12, 3).fill();
-      d.fillColor(textColor).text(text, x + 5, y + 3);
+      d.fillColor(textColor).text(text, x + 4, y + 3);
       d.restore();
     };
 
@@ -759,14 +818,14 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     
     // Summary Grid Layout (8 boxes of details)
     const candidateGrid = [
-      { label: "Candidate Name", value: candidate.fullName },
-      { label: "Role & Department", value: candidate.roleAppliedFor || "Teacher" },
-      { label: "Email", value: candidate.email },
-      { label: "Mobile", value: candidate.phone || "None" },
-      { label: "Report Type", value: refereeId ? "Individual Reference" : "Reference Check" },
-      { label: "Created", value: candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A" },
-      { label: "Completed", value: candidate.candidateFormSubmittedAt ? new Date(candidate.candidateFormSubmittedAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A" },
-      { label: "To Complete", value: "3 days" }
+      { label: "Candidate Name", value: candidate.fullName, theme: "purple" },
+      { label: "Role & Department", value: candidate.roleAppliedFor || "Teacher", theme: "purple" },
+      { label: "Email", value: candidate.email, theme: "blue" },
+      { label: "Mobile", value: candidate.phone || "None", theme: "blue" },
+      { label: "Report Type", value: refereeId ? "Individual Reference" : "Reference Check", theme: "gray" },
+      { label: "Created", value: candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray" },
+      { label: "Completed", value: candidate.candidateFormSubmittedAt ? new Date(candidate.candidateFormSubmittedAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray" },
+      { label: "To Complete", value: "3 days", theme: "gray" }
     ];
 
     let gridY = 110;
@@ -779,7 +838,20 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       doc.fillColor("#F8F9FA").roundedRect(x, y, 122, 38, 4).fill();
       doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 122, 38, 4).stroke();
 
-      drawPill(doc, x + 8, y + 6, item.label.toUpperCase(), "#E8F0FE", "#1A73E8");
+      let pillBg = "#F3F4F6";
+      let pillText = "#4B5563";
+      if (item.theme === "purple") {
+        pillBg = "#F3E8FF";
+        pillText = "#9333EA";
+      } else if (item.theme === "indigo") {
+        pillBg = "#EEF2FF";
+        pillText = "#6366F1";
+      } else if (item.theme === "blue") {
+        pillBg = "#E0F2FE";
+        pillText = "#0284C7";
+      }
+
+      drawPill(doc, x + 8, y + 6, item.label.toUpperCase(), pillBg, pillText);
       doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(item.value, x + 8, y + 22, { width: 108, ellipsis: true });
     });
 
@@ -794,38 +866,38 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, summaryY, 515, 45, 4).stroke();
 
       // Column 1: Referee Name & Relationship
-      drawPill(doc, 50, summaryY + 6, "REFEREE", "#E8F0FE", "#1A73E8");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text(ref.fullName, 50, summaryY + 20, { width: 115, ellipsis: true });
-      doc.fillColor("#5F6368").fontSize(7).font("Helvetica").text(ref.relationship, 50, summaryY + 30, { width: 115, ellipsis: true });
+      drawPill(doc, 50, summaryY + 6, "REFEREE", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text(ref.fullName, 50, summaryY + 20, { width: 110, ellipsis: true });
+      doc.fillColor("#5F6368").fontSize(7).font("Helvetica").text(ref.relationship, 50, summaryY + 30, { width: 110, ellipsis: true });
 
       // Column 2: Email & Domain Badge
-      drawPill(doc, 175, summaryY + 6, "EMAIL", "#E8F0FE", "#1A73E8");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 175, summaryY + 20, { width: 115, ellipsis: true });
+      drawPill(doc, 165, summaryY + 6, "EMAIL", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 165, summaryY + 20, { width: 130, ellipsis: true });
       const isPersonal = ref.email.includes("gmail") || ref.email.includes("yahoo") || ref.email.includes("outlook") || ref.email.includes("hotmail");
       if (isPersonal) {
-        drawStatusPill(doc, 175, summaryY + 30, "▲ NON-COMPANY EMAIL", "warning");
+        drawStatusPill(doc, 165, summaryY + 30, "▲ NON COMPANY EMAIL", "warning");
       } else {
-        drawStatusPill(doc, 175, summaryY + 30, "✔ WORK EMAIL", "success");
+        drawStatusPill(doc, 165, summaryY + 30, "✔ WORK EMAIL", "success");
       }
 
       // Column 3: Phone
-      drawPill(doc, 300, summaryY + 6, "PHONE", "#E8F0FE", "#1A73E8");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.phone || "None", 300, summaryY + 20, { width: 75, ellipsis: true });
+      drawPill(doc, 300, summaryY + 6, "PHONE", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.phone || "None", 300, summaryY + 20, { width: 70, ellipsis: true });
 
       // Column 4: LinkedIn
-      drawPill(doc, 385, summaryY + 6, "LINKEDIN", "#E8F0FE", "#1A73E8");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 385, summaryY + 20);
-      drawStatusPill(doc, 385, summaryY + 30, "▲ NOT VERIFIED", "neutral");
+      drawPill(doc, 375, summaryY + 6, "LINKEDIN", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 375, summaryY + 20);
+      drawStatusPill(doc, 375, summaryY + 30, "▲ NO INFO PROVIDED", "warning");
 
       // Column 5: IP Address & Shared Status
-      drawPill(doc, 465, summaryY + 6, "IP ADDRESS", "#E8F0FE", "#1A73E8");
+      drawPill(doc, 480, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
       const ip = ref.response?.ipAddress || "127.0.0.1";
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 465, summaryY + 20, { width: 80, ellipsis: true });
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 480, summaryY + 20, { width: 75, ellipsis: true });
       const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
       if (isSharedIp) {
-        drawStatusPill(doc, 465, summaryY + 30, "▲ SHARED IP", "warning");
+        drawStatusPill(doc, 480, summaryY + 30, "▲ SHARED IP ADDRESS", "warning");
       } else {
-        drawStatusPill(doc, 465, summaryY + 30, "✔ UNIQUE IP", "success");
+        drawStatusPill(doc, 480, summaryY + 30, "✔ UNIQUE IP ADDRESS", "success");
       }
 
       summaryY += 55;
@@ -841,15 +913,17 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       "q_gp2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
       "q_gp3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" }, // datesFrom / datesTo combo
       "q_gp4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
+      "q_gp5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" },
       
       "q_ece_1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "employerName" },
       "q_ece_2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
       "q_ece_3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" },
-      "q_ece_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" }
+      "q_ece_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
+      "q_ece_5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" }
     };
 
     // Filter verification questions
-    const verificationQIds = ["q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4"];
+    const verificationQIds = ["q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_gp5", "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4", "q_ece_5"];
     const verificationQuestions = questions.filter((q: any) => verificationQIds.includes(q.id));
     const normalQuestions = questions.filter((q: any) => !verificationQIds.includes(q.id));
 
@@ -870,13 +944,24 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         if (mapping) {
           if (mapping.field === "datesFrom") {
             candidateVal = `${ref.datesFrom || ""} to ${ref.datesTo || "Present"}`;
+          } else if (mapping.field === "reasonForLeaving") {
+            const isStillWorking = !ref.datesTo || ref.datesTo.toLowerCase().includes("present") || ref.datesTo.toLowerCase() === "still working";
+            candidateVal = isStillWorking 
+              ? `Still working at ${ref.employerName || "employer"}` 
+              : "Finished employment / Not provided";
           } else {
             candidateVal = (ref as any)[mapping.field] || "Not provided";
           }
         }
 
-        // Check overflow for the next double-box card (approx height 65)
-        if (qaY > 740) {
+        // Calculate dynamic height based on candidate stating value vs referee answered value
+        doc.font("Helvetica").fontSize(8);
+        const candidateHeight = doc.heightOfString(candidateVal, { width: 234 }) + 30;
+        const refereeHeight = doc.heightOfString(ansVal, { width: 234 }) + 30;
+        const boxHeight = Math.max(candidateHeight, refereeHeight, 38);
+
+        // Check overflow for the next double-box card
+        if (qaY + boxHeight + 25 > 770) {
           doc.addPage();
           drawPageHeader(doc);
           qaY = 90;
@@ -888,19 +973,19 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         
         qaY += 23;
 
-        // Candidate box (Left) - dynamically titled with candidate's name
-        doc.fillColor("#F8F9FA").roundedRect(40, qaY, 250, 36, 4).fill();
-        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 250, 36, 4).stroke();
-        doc.fillColor("#9AA0A6").fontSize(6).font("Helvetica-Bold").text(candidate.fullName.toUpperCase(), 48, qaY + 6, { width: 234, ellipsis: true });
-        doc.fillColor("#5F6368").fontSize(8).font("Helvetica").text(candidateVal, 48, qaY + 16, { width: 234, ellipsis: true });
+        // Candidate box (Left) - dynamically titled with candidate's name in purple
+        doc.fillColor("#F8F9FA").roundedRect(40, qaY, 250, boxHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 250, boxHeight, 4).stroke();
+        drawPill(doc, 48, qaY + 6, candidate.fullName.toUpperCase(), "#F3E8FF", "#9333EA");
+        doc.fillColor("#5F6368").fontSize(8).font("Helvetica").text(candidateVal, 48, qaY + 22, { width: 234 });
 
-        // Referee box (Right) - dynamically titled with referee's name
-        doc.fillColor("#FFFFFF").roundedRect(305, qaY, 250, 36, 4).fill();
-        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(305, qaY, 250, 36, 4).stroke();
-        doc.fillColor("#1A73E8").fontSize(6).font("Helvetica-Bold").text(ref.fullName.toUpperCase(), 313, qaY + 6, { width: 234, ellipsis: true });
-        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ansVal, 313, qaY + 16, { width: 234, ellipsis: true });
+        // Referee box (Right) - dynamically titled with referee's name in grey
+        doc.fillColor("#FFFFFF").roundedRect(305, qaY, 250, boxHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(305, qaY, 250, boxHeight, 4).stroke();
+        drawPill(doc, 313, qaY + 6, ref.fullName.toUpperCase(), "#F3F4F6", "#4B5563");
+        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ansVal, 313, qaY + 22, { width: 234 });
 
-        qaY += 46;
+        qaY += boxHeight + 10;
         verIndex++;
       }
     }
@@ -938,86 +1023,84 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
           ansText = String(ansValue);
         }
 
-        // Calculate heights for the two-column layout
-        // Left column width = 230, Right column width = 260
-        doc.font("Helvetica-Bold").fontSize(8.5);
-        const leftHeight = doc.heightOfString(q.label, { width: 230 }) + 15;
-        
-        let rightHeight = 0;
+        // Calculate card height dynamically
+        let cardHeight = 30;
         if (q.type === "rating") {
-          rightHeight = 25;
+          cardHeight = 26;
         } else {
           doc.font("Helvetica").fontSize(8.5);
-          rightHeight = doc.heightOfString(ansText, { width: 260, lineGap: 2 }) + 10;
+          cardHeight = doc.heightOfString(ansText, { width: 495, lineGap: 1.5 }) + 16;
         }
 
-        const rowHeight = Math.max(leftHeight, rightHeight, 35);
+        // Check page overflow (approx question label + card height)
+        doc.font("Helvetica-Bold").fontSize(9);
+        const labelHeight = doc.heightOfString(q.label, { width: 515 }) + 12;
+        const totalHeight = labelHeight + cardHeight + 15;
 
-        // Check page overflow
-        if (qaY + rowHeight > 740) {
+        if (qaY + totalHeight > 770) {
           doc.addPage();
           drawPageHeader(doc);
           qaY = 90;
         }
 
-        // Draw Left Column: Question index & text
-        doc.fillColor("#70757A").fontSize(7.5).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY + 4);
-        doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica-Bold").text(q.label, 40, qaY + 14, { width: 230 });
+        // Draw Question Label (Full width)
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
+        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10, { width: 515 });
+        qaY += labelHeight;
 
-        // Draw Right Column: Answer
+        // Draw Container Card (Full width: 515)
+        doc.fillColor("#FFFFFF").roundedRect(40, qaY, 515, cardHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 515, cardHeight, 4).stroke();
+
         if (q.type === "rating") {
           const rating = Number(ansValue) || 0;
-          const startX = 295;
+          const startX = 50;
           for (let i = 1; i <= 5; i++) {
-            const numX = startX + (i - 1) * 24;
+            const numX = startX + (i - 1) * 20;
             const cx = numX + 4;
-            const cy = qaY + 16;
+            const cy = qaY + 13;
             
             if (i === rating) {
-              // Highlight active rating with solid blue circle and white bold text
+              // Highlight active rating in purple circle
               doc.save();
-              doc.fillColor("#1A73E8").circle(cx, cy, 8).fill();
-              doc.fillColor("#FFFFFF").fontSize(8).font("Helvetica-Bold");
+              doc.fillColor("#7E22CE").circle(cx, cy, 7).fill();
+              doc.fillColor("#FFFFFF").fontSize(7.5).font("Helvetica-Bold");
               const tw = doc.widthOfString(String(i));
-              doc.text(String(i), cx - tw / 2, cy - 4);
+              doc.text(String(i), cx - tw / 2, cy - 3.5);
               doc.restore();
             } else {
               // Dim inactive ratings
-              doc.fillColor("#BDC1C6").fontSize(8).font("Helvetica");
+              doc.fillColor("#BDC1C6").fontSize(7.5).font("Helvetica");
               const tw = doc.widthOfString(String(i));
-              doc.text(String(i), cx - tw / 2, cy - 4);
+              doc.text(String(i), cx - tw / 2, cy - 3.5);
             }
+          }
+        } else if (q.type === "yes_no" || q.type === "boolean") {
+          const isYes = ansText.toLowerCase().startsWith("yes");
+          const isNo = ansText.toLowerCase().startsWith("no");
+          if (isYes) {
+            doc.fillColor("#16A34A").fontSize(8.5).font("Helvetica-Bold").text(ansText, 50, qaY + 8);
+          } else if (isNo) {
+            doc.fillColor("#D93025").fontSize(8.5).font("Helvetica-Bold").text(ansText, 50, qaY + 8);
+          } else {
+            doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 50, qaY + 8);
           }
         } else {
-          // If it's a yes/no question, style the text dynamically
-          if (q.type === "yes_no" || q.type === "boolean") {
-            const isYes = ansText.toLowerCase().startsWith("yes");
-            const isNo = ansText.toLowerCase().startsWith("no");
-            if (isYes) {
-              doc.fillColor("#1E8E3E").fontSize(8.5).font("Helvetica-Bold").text(ansText, 295, qaY + 10);
-            } else if (isNo) {
-              doc.fillColor("#D93025").fontSize(8.5).font("Helvetica-Bold").text(ansText, 295, qaY + 10);
-            } else {
-              doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 295, qaY + 10, { width: 260, lineGap: 2 });
-            }
-          } else {
-            doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 295, qaY + 10, { width: 260, lineGap: 2 });
-          }
+          // Open-text question: left indicator vertical line and offset text
+          doc.strokeColor("#DADCE0").lineWidth(1.5).moveTo(50, qaY + 8).lineTo(50, qaY + cardHeight - 8).stroke();
+          doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 58, qaY + 8, { width: 485, lineGap: 1.5 });
         }
 
-        // Draw horizontal row separator
-        doc.strokeColor("#E8EAED").lineWidth(0.5).moveTo(40, qaY + rowHeight).lineTo(555, qaY + rowHeight).stroke();
-
-        qaY += rowHeight;
+        qaY += cardHeight + 15;
         verIndex++;
       }
     }
 
-    // --- CHECKMATE DISCLAIMER BOX ---
-    const disclaimerText = "Checkmate is committed to providing accurate and up-to-date information to the best of its abilities. However, please note that the information presented by Checkmate may not always be entirely accurate, complete, or current. Due to the dynamic nature of information and the vast amount of data available, it is possible that some information may be inaccurate, outdated, or subject to change. Checkmate does not assume any responsibility or liability for any errors, inaccuracies, omissions, or inconsistencies in the information provided. Users rely on the information provided by Checkmate at their own risk.";
+    // --- REFCHECK DISCLAIMER BOX ---
+    const disclaimerText = "RefCheck is committed to providing accurate and up-to-date information to the best of its abilities. However, please note that the information presented by RefCheck may not always be entirely accurate, complete, or current. Due to the dynamic nature of information and the vast amount of data available, it is possible that some information may be inaccurate, outdated, or subject to change. RefCheck does not assume any responsibility or liability for any errors, inaccuracies, omissions, or inconsistencies in the information provided. Users rely on the information provided by RefCheck at their own risk.";
     const discHeight = doc.heightOfString(disclaimerText, { width: 495 });
     
-    if (qaY + discHeight + 50 > 760) {
+    if (qaY + discHeight + 50 > 770) {
       doc.addPage();
       drawPageHeader(doc);
       qaY = 90;
@@ -1027,7 +1110,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     doc.fillColor("#FFFFFF").roundedRect(40, qaY, 515, discHeight + 25, 4).fill();
     doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 515, discHeight + 25, 4).stroke();
 
-    doc.fillColor("#70757A").fontSize(6.5).font("Helvetica-Bold").text("CHECKMATE DISCLAIMER", 50, qaY + 8);
+    doc.fillColor("#70757A").fontSize(6.5).font("Helvetica-Bold").text("REFCHECK DISCLAIMER", 50, qaY + 8);
     doc.fillColor("#70757A").fontSize(7).font("Helvetica").text(disclaimerText, 50, qaY + 18, { width: 495, lineGap: 1.5 });
 
     // --- FINALIZE FOOTERS ---
