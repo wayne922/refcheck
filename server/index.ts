@@ -771,7 +771,14 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(310, 20, 145, 45, 4).stroke();
       
       d.fillColor("#5F6368").fontSize(6.5).font("Helvetica").text("POWERED BY", 320, 26);
-      d.fillColor("#7E22CE").fontSize(9).font("Helvetica-Bold").text("✔ RefCheck", 320, 34);
+      
+      // Draw a small custom checkmark icon vectorially (removes the stray "'" character)
+      d.save();
+      d.strokeColor("#7E22CE").lineWidth(1.2).lineCap("round").lineJoin("round");
+      d.moveTo(320, 37).lineTo(323, 40).lineTo(328, 34).stroke();
+      d.restore();
+      
+      d.fillColor("#7E22CE").fontSize(9).font("Helvetica-Bold").text("RefCheck", 332, 33);
       d.fillColor("#70757A").fontSize(6).font("Helvetica").text("team@refcheck.tech  |  refcheck.tech", 320, 48);
 
       // 2. ISO seal badge
@@ -878,9 +885,9 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 175, summaryY + 20, { width: 120, ellipsis: true });
       const isPersonal = ref.email.includes("gmail") || ref.email.includes("yahoo") || ref.email.includes("outlook") || ref.email.includes("hotmail");
       if (isPersonal) {
-        drawStatusPill(doc, 175, summaryY + 30, "▲ NON COMPANY EMAIL", "warning");
+        drawStatusPill(doc, 175, summaryY + 30, "NON-COMPANY EMAIL", "warning");
       } else {
-        drawStatusPill(doc, 175, summaryY + 30, "✔ WORK EMAIL", "success");
+        drawStatusPill(doc, 175, summaryY + 30, "WORK EMAIL", "success");
       }
 
       // Column 3: Phone
@@ -890,7 +897,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       // Column 4: LinkedIn
       drawPill(doc, 380, summaryY + 6, "LINKEDIN", "#F3F4F6", "#4B5563");
       doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 380, summaryY + 20, { width: 80 });
-      drawStatusPill(doc, 380, summaryY + 30, "▲ NO INFO PROVIDED", "warning");
+      drawStatusPill(doc, 380, summaryY + 30, "NO INFO PROVIDED", "warning");
 
       // Column 5: IP Address & Shared Status
       drawPill(doc, 470, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
@@ -898,9 +905,9 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 470, summaryY + 20, { width: 65, ellipsis: true });
       const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
       if (isSharedIp) {
-        drawStatusPill(doc, 470, summaryY + 30, "▲ SHARED IP ADDRESS", "warning");
+        drawStatusPill(doc, 470, summaryY + 30, "SHARED IP ADDRESS", "warning");
       } else {
-        drawStatusPill(doc, 470, summaryY + 30, "✔ UNIQUE IP ADDRESS", "success");
+        drawStatusPill(doc, 470, summaryY + 30, "UNIQUE IP ADDRESS", "success");
       }
 
       summaryY += 55;
