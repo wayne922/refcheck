@@ -111,33 +111,92 @@ app.get("/api/health", (_req, res) => {
   res.status(200).json({ status: "healthy", mode: airtableService.isMockMode() ? "mock" : "live" });
 });
 
-// Google SSO Sign-In (Sprint 1)
+// App configuration (returns Google Client ID if configured)
+app.get("/api/config", (_req, res) => {
+  res.status(200).json({
+    googleClientId: process.env.GOOGLE_CLIENT_ID || null
+  });
+});
+
+// Google SSO Sign-In (Sprint 1 & Live Production OAuth Verification)
 app.post("/api/auth/google", async (req, res) => {
   const { email, companyName, fullName, googleToken } = req.body;
 
-  if (!email || !companyName) {
-    return res.status(400).json({ success: false, error: "Email and Company Name are required" });
+  let emailToUse = email;
+  let nameToUse = fullName || "";
+  let ssoIdToUse = googleToken || (email ? `google-sso-sub-${email.replace(/[@.]/g, "-")}` : "");
+  let isRealGoogleAuth = false;
+
+  const googleClientId = process.env.GOOGLE_CLIENT_ID;
+
+  // 1. Verify token with Google API if googleToken is passed and Google Client ID is configured
+  if (googleToken && googleClientId) {
+    try {
+      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${googleToken}`);
+      if (!verifyRes.ok) {
+        return res.status(401).json({ success: false, error: "Invalid Google sign-in credential" });
+      }
+      const payload: any = await verifyRes.json();
+      
+      // Verify audience matches our Client ID
+      if (payload.aud !== googleClientId) {
+        return res.status(401).json({ success: false, error: "Google token audience mismatch" });
+      }
+
+      emailToUse = payload.email;
+      nameToUse = payload.name;
+      ssoIdToUse = payload.sub; // Real Google User ID
+      isRealGoogleAuth = true;
+      console.log(`[Google Auth] Verified identity for: ${emailToUse}`);
+    } catch (err: any) {
+      console.error("Failed to verify Google ID token:", err);
+      return res.status(401).json({ success: false, error: "Failed to verify Google sign-in credential" });
+    }
+  }
+
+  // 2. Fallback check for developer simulation login
+  if (!isRealGoogleAuth && (!emailToUse || (!companyName && !emailToUse))) {
+    return res.status(400).json({ success: false, error: "Email is required for sign-in" });
   }
 
   try {
-    const simulatedSsoId = googleToken || `google-sso-sub-${email.replace(/[@.]/g, "-")}`;
+    let employer = null;
+    let user = await airtableService.getUserByEmail(emailToUse);
 
-    let employer = await airtableService.getEmployerBySsoId(simulatedSsoId);
-    if (!employer) {
-      const parsedDomain = email.split("@")[1];
-      employer = await airtableService.createEmployer({
-        companyName: companyName,
-        companyDomain: parsedDomain,
-        googleSsoId: simulatedSsoId,
-      });
-    }
+    if (user) {
+      // User already exists, fetch their linked employer
+      const employerId = user.employerId || (user.employer && Array.isArray(user.employer) ? user.employer[0] : user.employer);
+      employer = await airtableService.getEmployer(employerId);
+      if (!employer) {
+        return res.status(404).json({ success: false, error: "Employer associated with this user was not found." });
+      }
+    } else {
+      // User doesn't exist, try to lookup employer by email domain to auto-onboard team members
+      const parsedDomain = emailToUse.split("@")[1];
+      employer = await airtableService.getEmployerByDomain(parsedDomain);
 
-    let user = await airtableService.getUserByEmail(email);
-    if (!user) {
+      if (!employer) {
+        // If domain is not registered, and they are not signing up with a companyName
+        if (!companyName) {
+          return res.status(403).json({
+            success: false,
+            error: "Your company domain is not registered on RefCheck. Please sign up or contact your administrator."
+          });
+        }
+        
+        // Register new employer profile
+        employer = await airtableService.createEmployer({
+          companyName: companyName,
+          companyDomain: parsedDomain,
+          googleSsoId: ssoIdToUse,
+        });
+      }
+
+      // Create new user profile linked to the employer
       user = await airtableService.createUser({
-        fullName: fullName || companyName + " Recruiter",
-        email: email,
-        googleSsoId: simulatedSsoId,
+        fullName: nameToUse || (employer.companyName + " Recruiter"),
+        email: emailToUse,
+        googleSsoId: ssoIdToUse,
         employerId: employer.id,
       });
     }
@@ -159,7 +218,7 @@ app.post("/api/auth/google", async (req, res) => {
       user: {
         email: user.email,
         companyName: employer.companyName,
-        role: user.role,
+        role: user.role || "Admin",
       }
     });
   } catch (err: any) {

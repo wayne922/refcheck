@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Chrome } from "lucide-react";
 import { AuthState } from "../App.tsx";
 import logo from "../assets/logo.png";
@@ -12,6 +12,67 @@ export function Login({ onLogin }: LoginProps) {
   const [companyName, setCompanyName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch google client ID configuration
+    fetch("/api/config")
+      .then(res => res.json())
+      .then(data => {
+        if (data.googleClientId) {
+          setGoogleClientId(data.googleClientId);
+          initializeGoogleSignIn(data.googleClientId);
+        }
+      })
+      .catch(err => console.error("Error loading auth config:", err));
+  }, []);
+
+  const initializeGoogleSignIn = (clientId: string) => {
+    const interval = setInterval(() => {
+      if ((window as any).google?.accounts?.id) {
+        clearInterval(interval);
+        (window as any).google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCallback,
+          auto_select: false
+        });
+        (window as any).google.accounts.id.renderButton(
+          document.getElementById("google-signin-button"),
+          { 
+            theme: "outline", 
+            size: "large", 
+            width: 382,
+            text: "signin_with",
+            shape: "rectangular"
+          }
+        );
+      }
+    }, 100);
+  };
+
+  const handleGoogleCallback = async (response: any) => {
+    setLoading(true);
+    setError("");
+    try {
+      const fetchResponse = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ googleToken: response.credential })
+      });
+      const data = await fetchResponse.json();
+      if (!fetchResponse.ok || !data.success) {
+        throw new Error(data.error || "Google Sign-In failed");
+      }
+      onLogin({
+        token: data.token,
+        user: data.user
+      });
+    } catch (err: any) {
+      setError(err.message || "Unable to complete Google authentication");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const performLogin = async (payload: { email: string; companyName: string; fullName?: string }) => {
     setLoading(true);
@@ -70,14 +131,21 @@ export function Login({ onLogin }: LoginProps) {
           </p>
         </div>
 
-        <button
-          onClick={handleGoogleSimulate}
-          disabled={loading}
-          className="flex items-center justify-center gap-3 w-full py-3 border border-border bg-card rounded-xl text-sm font-semibold hover:bg-secondary transition-all mb-6 shadow-sm cursor-pointer disabled:opacity-50"
-        >
-          <Chrome className="w-5 h-5 text-primary" />
-          {loading ? "Authenticating..." : "Sign in with Google"}
-        </button>
+        {googleClientId ? (
+          <div className="flex flex-col items-center w-full mb-6">
+            <div id="google-signin-button" className="w-full flex justify-center"></div>
+            {loading && <p className="text-xs text-muted-foreground mt-2 animate-pulse">Authenticating with Google...</p>}
+          </div>
+        ) : (
+          <button
+            onClick={handleGoogleSimulate}
+            disabled={loading}
+            className="flex items-center justify-center gap-3 w-full py-3 border border-border bg-card rounded-xl text-sm font-semibold hover:bg-secondary transition-all mb-6 shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <Chrome className="w-5 h-5 text-primary" />
+            {loading ? "Authenticating..." : "Sign in with Google (Dev Mode)"}
+          </button>
+        )}
 
         <div className="relative flex py-3 items-center mb-6">
           <div className="flex-grow border-t border-border"></div>

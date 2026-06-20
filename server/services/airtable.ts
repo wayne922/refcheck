@@ -763,6 +763,25 @@ export const airtableService = {
     }
   },
 
+  getEmployerByDomain: async (domain: string) => {
+    if (isMock) {
+      return mockDb.employers.find((e: any) => e.companyDomain === domain) || null;
+    }
+    try {
+      const records = await base("Employers")
+        .select({
+          filterByFormula: `{companyDomain} = '${domain}'`,
+          maxRecords: 1,
+        })
+        .firstPage();
+      if (records.length === 0) return null;
+      return { id: records[0].id, createdAt: records[0]._rawJson.createdTime, ...records[0].fields };
+    } catch (err) {
+      console.error(`Airtable error searching employer by domain:`, err);
+      throw err;
+    }
+  },
+
   createEmployer: async (data: { companyName: string; companyDomain: string; googleSsoId: string }) => {
     if (isMock) {
       const newId = `rec_emp_${Date.now()}`;
