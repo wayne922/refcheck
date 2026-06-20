@@ -1221,34 +1221,61 @@ app.post("/api/candidates/:id/referees", async (req, res) => {
 
     const employerId = Array.isArray(candidate.employer) ? candidate.employer[0] : candidate.employer;
     
+    // Fetch any already existing referees for this candidate to prevent duplicates on retries
+    const existingReferees = await airtableService.getRefereesForCandidate(id);
+
     // Create each referee in Airtable and dispatch invites
     const createdReferees = [];
     for (const ref of referees) {
-      const refereeToken = crypto.randomBytes(8).toString("hex");
+      // Look for an existing referee with the same email (case-insensitive)
+      const existingRef = existingReferees.find((r: any) => r.email && r.email.toLowerCase() === ref.email.toLowerCase());
 
-      const refereeRecord = await airtableService.createReferee({
-        fullName: ref.fullName,
-        email: ref.email,
-        phone: ref.phone || "",
-        relationship: ref.relationship,
-        employerName: ref.employerName || "",
-        jobTitle: ref.jobTitle || "",
-        datesFrom: ref.datesFrom || "",
-        datesTo: ref.datesTo || "",
-        candidateId: id,
-        refereeToken
-      });
+      let refereeRecord;
+      if (existingRef) {
+        refereeRecord = existingRef;
+        console.log(`[Referee Submit] Referee with email ${ref.email} already exists for candidate ${id}. Reusing record.`);
+        
+        // Re-send invitation details only if it hasn't been sent or completed
+        if (existingRef.formStatus === "Not Sent" || !existingRef.formStatus) {
+          const token = existingRef.refereeToken || existingRef.token;
+          await emailService.sendRefereeInvite(ref.fullName, ref.email, candidate.fullName, candidate.employerName, token);
+          await smsService.sendRefereeInvite(ref.fullName, ref.phone || "", candidate.fullName, candidate.employerName, token);
+          await airtableService.updateRefereeFields(existingRef.id, {
+            formStatus: "Sent",
+            emailSentAt: new Date().toISOString(),
+            smsSentAt: new Date().toISOString()
+          });
+          refereeRecord.formStatus = "Sent";
+        }
+      } else {
+        const refereeToken = crypto.randomBytes(8).toString("hex");
 
-      // Dispatch dynamic SendGrid invitation email & Twilio SMS (simulated in mock/dev mode)
-      await emailService.sendRefereeInvite(ref.fullName, ref.email, candidate.fullName, candidate.employerName, refereeToken);
-      await smsService.sendRefereeInvite(ref.fullName, ref.phone || "", candidate.fullName, candidate.employerName, refereeToken);
+        refereeRecord = await airtableService.createReferee({
+          fullName: ref.fullName,
+          email: ref.email,
+          phone: ref.phone || "",
+          relationship: ref.relationship,
+          employerName: ref.employerName || "",
+          jobTitle: ref.jobTitle || "",
+          datesFrom: ref.datesFrom || "",
+          datesTo: ref.datesTo || "",
+          candidateId: id,
+          refereeToken
+        });
 
-      // Update status to 'Sent' and record timestamps
-      await airtableService.updateRefereeFields(refereeRecord.id, {
-        formStatus: "Sent",
-        emailSentAt: new Date().toISOString(),
-        smsSentAt: new Date().toISOString()
-      });
+        // Dispatch dynamic SendGrid invitation email & Twilio SMS (simulated in mock/dev mode)
+        await emailService.sendRefereeInvite(ref.fullName, ref.email, candidate.fullName, candidate.employerName, refereeToken);
+        await smsService.sendRefereeInvite(ref.fullName, ref.phone || "", candidate.fullName, candidate.employerName, refereeToken);
+
+        // Update status to 'Sent' and record timestamps
+        await airtableService.updateRefereeFields(refereeRecord.id, {
+          formStatus: "Sent",
+          emailSentAt: new Date().toISOString(),
+          smsSentAt: new Date().toISOString()
+        });
+
+        refereeRecord.formStatus = "Sent";
+      }
 
       createdReferees.push({ ...refereeRecord, formStatus: "Sent" });
     }
