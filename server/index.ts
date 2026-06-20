@@ -695,13 +695,16 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
 
     // Helper: draw footer
     const drawFooter = (d: any, pageNum: number, totalPages: number) => {
+      const oldBottom = d.page.margins.bottom;
+      d.page.margins.bottom = 0;
       d.fontSize(8).fillColor("#5F6368");
       d.text(
         `Reference check conducted via ${brandedSenderName} | Page ${pageNum} of ${totalPages}`,
         40,
-        800,
+        810,
         { align: "center", width: 515 }
       );
+      d.page.margins.bottom = oldBottom;
     };
 
     // Dynamic Header Logo & Powered Box (rendered on every page)
