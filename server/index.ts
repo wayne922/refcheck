@@ -814,98 +814,103 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     };
 
     // --- CANDIDATE SUMMARY ---
-    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CANDIDATE SUMMARY", 40, 95);
-    
+    // Draw outer container border
+    doc.fillColor("#FFFFFF").roundedRect(40, 85, 515, 120, 6).fill();
+    doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, 85, 515, 120, 6).stroke();
+
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CANDIDATE SUMMARY", 50, 95);
+
     // Summary Grid Layout (8 boxes of details)
     const candidateGrid = [
-      { label: "Candidate Name", value: candidate.fullName, theme: "purple" },
-      { label: "Role & Department", value: candidate.roleAppliedFor || "Teacher", theme: "purple" },
-      { label: "Email", value: candidate.email, theme: "blue" },
-      { label: "Mobile", value: candidate.phone || "None", theme: "blue" },
-      { label: "Report Type", value: refereeId ? "Individual Reference" : "Reference Check", theme: "gray" },
-      { label: "Created", value: candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray" },
-      { label: "Completed", value: candidate.candidateFormSubmittedAt ? new Date(candidate.candidateFormSubmittedAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray" },
-      { label: "To Complete", value: "3 days", theme: "gray" }
+      { label: "Candidate Name", value: candidate.fullName, theme: "purple", x: 50, w: 122, y: 110 },
+      { label: "Role & Department", value: candidate.roleAppliedFor || "Teacher", theme: "purple", x: 182, w: 122, y: 110 },
+      { label: "Email", value: candidate.email, theme: "blue", x: 314, w: 122, y: 110 },
+      { label: "Mobile", value: candidate.phone || "None", theme: "blue", x: 446, w: 99, y: 110 },
+
+      { label: "Report Type", value: refereeId ? "Individual Reference" : "Reference Check", theme: "gray", x: 50, w: 254, y: 155 },
+      { label: "Created", value: candidate.createdAt ? new Date(candidate.createdAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray", x: 314, w: 72, y: 155 },
+      { label: "Completed", value: candidate.candidateFormSubmittedAt ? new Date(candidate.candidateFormSubmittedAt).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: '2-digit' }) : "N/A", theme: "gray", x: 396, w: 72, y: 155 },
+      { label: "To Complete", value: "3 days", theme: "gray", x: 478, w: 67, y: 155 }
     ];
 
-    let gridY = 110;
-    candidateGrid.forEach((item, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      const x = 40 + col * 131;
-      const y = gridY + row * 45;
-
-      doc.fillColor("#F8F9FA").roundedRect(x, y, 122, 38, 4).fill();
-      doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 122, 38, 4).stroke();
+    candidateGrid.forEach((item) => {
+      doc.fillColor("#F8F9FA").roundedRect(item.x, item.y, item.w, 38, 4).fill();
+      doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(item.x, item.y, item.w, 38, 4).stroke();
 
       let pillBg = "#F3F4F6";
       let pillText = "#4B5563";
       if (item.theme === "purple") {
         pillBg = "#F3E8FF";
         pillText = "#9333EA";
-      } else if (item.theme === "indigo") {
-        pillBg = "#EEF2FF";
-        pillText = "#6366F1";
       } else if (item.theme === "blue") {
         pillBg = "#E0F2FE";
         pillText = "#0284C7";
       }
 
-      drawPill(doc, x + 8, y + 6, item.label.toUpperCase(), pillBg, pillText);
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(item.value, x + 8, y + 22, { width: 108, ellipsis: true });
+      drawPill(doc, item.x + 8, item.y + 6, item.label.toUpperCase(), pillBg, pillText);
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(item.value, item.x + 8, item.y + 22, { width: item.w - 16, ellipsis: true });
     });
 
     // --- REPORT SUMMARY (REFEREE CARDS) ---
-    let summaryY = gridY + 100;
-    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("REPORT SUMMARY", 40, summaryY);
-    summaryY += 15;
+    let summaryY = 215;
+    const reportSummaryHeight = 25 + 55 * completedReferees.length;
+
+    // Draw outer container border
+    doc.fillColor("#FFFFFF").roundedRect(40, summaryY, 515, reportSummaryHeight, 6).fill();
+    doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, summaryY, 515, reportSummaryHeight, 6).stroke();
+
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("REPORT SUMMARY", 50, summaryY + 10);
+    summaryY += 25;
 
     for (const ref of completedReferees) {
-      // Draw single row for the referee
-      doc.fillColor("#F8F9FA").roundedRect(40, summaryY, 515, 45, 4).fill();
-      doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, summaryY, 515, 45, 4).stroke();
+      // Draw single row for the referee (width 495, starts at X=50)
+      doc.fillColor("#F8F9FA").roundedRect(50, summaryY, 495, 45, 4).fill();
+      doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(50, summaryY, 495, 45, 4).stroke();
 
       // Column 1: Referee Name & Relationship
-      drawPill(doc, 50, summaryY + 6, "REFEREE", "#F3F4F6", "#4B5563");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text(ref.fullName, 50, summaryY + 20, { width: 110, ellipsis: true });
-      doc.fillColor("#5F6368").fontSize(7).font("Helvetica").text(ref.relationship, 50, summaryY + 30, { width: 110, ellipsis: true });
+      drawPill(doc, 60, summaryY + 6, "REFEREE", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text(ref.fullName, 60, summaryY + 20, { width: 105, ellipsis: true });
+      doc.fillColor("#5F6368").fontSize(7).font("Helvetica").text(ref.relationship, 60, summaryY + 30, { width: 105, ellipsis: true });
 
       // Column 2: Email & Domain Badge
-      drawPill(doc, 165, summaryY + 6, "EMAIL", "#F3F4F6", "#4B5563");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 165, summaryY + 20, { width: 130, ellipsis: true });
+      drawPill(doc, 175, summaryY + 6, "EMAIL", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.email, 175, summaryY + 20, { width: 120, ellipsis: true });
       const isPersonal = ref.email.includes("gmail") || ref.email.includes("yahoo") || ref.email.includes("outlook") || ref.email.includes("hotmail");
       if (isPersonal) {
-        drawStatusPill(doc, 165, summaryY + 30, "▲ NON COMPANY EMAIL", "warning");
+        drawStatusPill(doc, 175, summaryY + 30, "▲ NON COMPANY EMAIL", "warning");
       } else {
-        drawStatusPill(doc, 165, summaryY + 30, "✔ WORK EMAIL", "success");
+        drawStatusPill(doc, 175, summaryY + 30, "✔ WORK EMAIL", "success");
       }
 
       // Column 3: Phone
-      drawPill(doc, 300, summaryY + 6, "PHONE", "#F3F4F6", "#4B5563");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.phone || "None", 300, summaryY + 20, { width: 70, ellipsis: true });
+      drawPill(doc, 305, summaryY + 6, "PHONE", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ref.phone || "None", 305, summaryY + 20, { width: 65, ellipsis: true });
 
       // Column 4: LinkedIn
-      drawPill(doc, 375, summaryY + 6, "LINKEDIN", "#F3F4F6", "#4B5563");
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 375, summaryY + 20);
-      drawStatusPill(doc, 375, summaryY + 30, "▲ NO INFO PROVIDED", "warning");
+      drawPill(doc, 380, summaryY + 6, "LINKEDIN", "#F3F4F6", "#4B5563");
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 380, summaryY + 20, { width: 80 });
+      drawStatusPill(doc, 380, summaryY + 30, "▲ NO INFO PROVIDED", "warning");
 
       // Column 5: IP Address & Shared Status
-      drawPill(doc, 480, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
+      drawPill(doc, 470, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
       const ip = ref.response?.ipAddress || "127.0.0.1";
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 480, summaryY + 20, { width: 75, ellipsis: true });
+      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 470, summaryY + 20, { width: 65, ellipsis: true });
       const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
       if (isSharedIp) {
-        drawStatusPill(doc, 480, summaryY + 30, "▲ SHARED IP ADDRESS", "warning");
+        drawStatusPill(doc, 470, summaryY + 30, "▲ SHARED IP ADDRESS", "warning");
       } else {
-        drawStatusPill(doc, 480, summaryY + 30, "✔ UNIQUE IP ADDRESS", "success");
+        drawStatusPill(doc, 470, summaryY + 30, "✔ UNIQUE IP ADDRESS", "success");
       }
 
       summaryY += 55;
     }
 
     // --- VERIFICATION QUESTIONS (Side-by-Side Cards) ---
-    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("VERIFICATION QUESTIONS", 40, summaryY + 5);
-    let qaY = summaryY + 20;
+    const verStartY = summaryY + 10;
+    const verStartPage = doc.bufferedPageRange().count - 1;
+
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("VERIFICATION QUESTIONS", 50, verStartY + 10);
+    let qaY = verStartY + 25;
 
     // Define verification QIDs mapping (to match Candidate's stated info)
     const verificationMap: Record<string, { candidateLabel: string, refLabel: string, field: string }> = {
@@ -956,56 +961,64 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
 
         // Calculate dynamic height based on candidate stating value vs referee answered value
         doc.font("Helvetica").fontSize(8);
-        const candidateHeight = doc.heightOfString(candidateVal, { width: 234 }) + 30;
-        const refereeHeight = doc.heightOfString(ansVal, { width: 234 }) + 30;
+        const candidateHeight = doc.heightOfString(candidateVal, { width: 224 }) + 30;
+        const refereeHeight = doc.heightOfString(ansVal, { width: 224 }) + 30;
         const boxHeight = Math.max(candidateHeight, refereeHeight, 38);
 
         // Check overflow for the next double-box card
-        if (qaY + boxHeight + 25 > 770) {
+        doc.font("Helvetica-Bold").fontSize(9);
+        const labelHeight = doc.heightOfString(q.label, { width: 495 }) + 10;
+        const totalHeight = labelHeight + boxHeight + 20;
+
+        if (qaY + totalHeight > 770) {
           doc.addPage();
           drawPageHeader(doc);
           qaY = 90;
         }
 
         // Draw question index & text
-        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
-        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10);
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 50, qaY);
+        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 50, qaY + 10, { width: 495 });
         
-        qaY += 23;
+        qaY += labelHeight;
 
         // Candidate box (Left) - dynamically titled with candidate's name in purple
-        doc.fillColor("#F8F9FA").roundedRect(40, qaY, 250, boxHeight, 4).fill();
-        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 250, boxHeight, 4).stroke();
-        drawPill(doc, 48, qaY + 6, candidate.fullName.toUpperCase(), "#F3E8FF", "#9333EA");
-        doc.fillColor("#5F6368").fontSize(8).font("Helvetica").text(candidateVal, 48, qaY + 22, { width: 234 });
+        doc.fillColor("#F8F9FA").roundedRect(50, qaY, 240, boxHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(50, qaY, 240, boxHeight, 4).stroke();
+        drawPill(doc, 58, qaY + 6, candidate.fullName.toUpperCase(), "#F3E8FF", "#9333EA");
+        doc.fillColor("#5F6368").fontSize(8).font("Helvetica").text(candidateVal, 58, qaY + 22, { width: 224 });
 
         // Referee box (Right) - dynamically titled with referee's name in grey
-        doc.fillColor("#FFFFFF").roundedRect(305, qaY, 250, boxHeight, 4).fill();
-        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(305, qaY, 250, boxHeight, 4).stroke();
+        doc.fillColor("#FFFFFF").roundedRect(305, qaY, 240, boxHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(305, qaY, 240, boxHeight, 4).stroke();
         drawPill(doc, 313, qaY + 6, ref.fullName.toUpperCase(), "#F3F4F6", "#4B5563");
-        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ansVal, 313, qaY + 22, { width: 234 });
+        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ansVal, 313, qaY + 22, { width: 224 });
 
         qaY += boxHeight + 10;
         verIndex++;
       }
     }
 
-    // --- CUSTOM & REMAINING QUESTIONS ---
-    // Start normal questions section header
-    if (qaY > 720) {
-      doc.addPage();
-      drawPageHeader(doc);
-      qaY = 90;
-    }
-    
-    // Draw horizontal divider before Custom Questions if not at the top of the page
-    if (qaY > 90) {
-      doc.strokeColor("#DADCE0").lineWidth(0.5).moveTo(40, qaY).lineTo(555, qaY).stroke();
-      qaY += 15;
+    // Draw container border on Page 1 (index 0) for Verification Questions
+    if (verStartPage === 0) {
+      const verEndPage = doc.bufferedPageRange().count - 1;
+      doc.save();
+      doc.switchToPage(0);
+      if (verEndPage === 0) {
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, verStartY, 515, qaY - verStartY - 5, 6).stroke();
+      } else {
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, verStartY, 515, 760 - verStartY, 6).stroke();
+      }
+      doc.restore();
+      doc.switchToPage(verEndPage); // Restore page context
     }
 
-    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CUSTOM QUESTIONS", 40, qaY);
-    qaY += 20;
+    // --- CUSTOM & REMAINING QUESTIONS ---
+    const customStartY = qaY;
+    const customStartPage = doc.bufferedPageRange().count - 1;
+
+    doc.fillColor("#1A1F2C").fontSize(10).font("Helvetica-Bold").text("CUSTOM QUESTIONS", 50, qaY + 10);
+    qaY += 25;
 
     for (const ref of completedReferees) {
       let refAnswers = [];
@@ -1024,41 +1037,44 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         }
 
         // Calculate card height dynamically
-        let cardHeight = 30;
+        let cardHeight = 20;
         if (q.type === "rating") {
-          cardHeight = 26;
+          cardHeight = 20;
+        } else if (q.type === "yes_no" || q.type === "boolean") {
+          cardHeight = 20;
         } else {
           doc.font("Helvetica").fontSize(8.5);
-          cardHeight = doc.heightOfString(ansText, { width: 495, lineGap: 1.5 }) + 16;
+          cardHeight = doc.heightOfString(ansText, { width: 465, lineGap: 1.2 }) + 10;
+          if (cardHeight < 20) cardHeight = 20;
         }
 
         // Check page overflow (approx question label + card height)
         doc.font("Helvetica-Bold").fontSize(9);
-        const labelHeight = doc.heightOfString(q.label, { width: 515 }) + 12;
-        const totalHeight = labelHeight + cardHeight + 15;
+        const labelHeight = doc.heightOfString(q.label, { width: 495 }) + 10;
+        const totalHeight = labelHeight + cardHeight + 8;
 
         if (qaY + totalHeight > 770) {
           doc.addPage();
           drawPageHeader(doc);
-          qaY = 90;
+          qaY = 100;
         }
 
-        // Draw Question Label (Full width)
-        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 40, qaY);
-        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 40, qaY + 10, { width: 515 });
+        // Draw Question Label (Full width inside container)
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 50, qaY);
+        doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 50, qaY + 10, { width: 495 });
         qaY += labelHeight;
 
-        // Draw Container Card (Full width: 515)
-        doc.fillColor("#FFFFFF").roundedRect(40, qaY, 515, cardHeight, 4).fill();
-        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 515, cardHeight, 4).stroke();
+        // Draw Container Card (Full width inside container: 495)
+        doc.fillColor("#FFFFFF").roundedRect(50, qaY, 495, cardHeight, 4).fill();
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(50, qaY, 495, cardHeight, 4).stroke();
 
         if (q.type === "rating") {
           const rating = Number(ansValue) || 0;
-          const startX = 50;
+          const startX = 60;
           for (let i = 1; i <= 5; i++) {
             const numX = startX + (i - 1) * 20;
             const cx = numX + 4;
-            const cy = qaY + 13;
+            const cy = qaY + 10;
             
             if (i === rating) {
               // Highlight active rating in purple circle
@@ -1079,44 +1095,74 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
           const isYes = ansText.toLowerCase().startsWith("yes");
           const isNo = ansText.toLowerCase().startsWith("no");
           if (isYes) {
-            doc.fillColor("#16A34A").fontSize(8.5).font("Helvetica-Bold").text(ansText, 50, qaY + 8);
+            doc.fillColor("#16A34A").fontSize(8.5).font("Helvetica-Bold").text(ansText, 60, qaY + 5);
           } else if (isNo) {
-            doc.fillColor("#D93025").fontSize(8.5).font("Helvetica-Bold").text(ansText, 50, qaY + 8);
+            doc.fillColor("#D93025").fontSize(8.5).font("Helvetica-Bold").text(ansText, 60, qaY + 5);
           } else {
-            doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 50, qaY + 8);
+            doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 60, qaY + 5);
           }
         } else {
           // Open-text question: left indicator vertical line and offset text
-          doc.strokeColor("#DADCE0").lineWidth(1.5).moveTo(50, qaY + 8).lineTo(50, qaY + cardHeight - 8).stroke();
-          doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 58, qaY + 8, { width: 485, lineGap: 1.5 });
+          doc.strokeColor("#DADCE0").lineWidth(1.5).moveTo(60, qaY + 5).lineTo(60, qaY + cardHeight - 5).stroke();
+          doc.fillColor("#1A1F2C").fontSize(8.5).font("Helvetica").text(ansText, 68, qaY + 5, { width: 465, lineGap: 1.2 });
         }
 
-        qaY += cardHeight + 15;
+        qaY += cardHeight + 8;
         verIndex++;
       }
     }
 
-    // --- REFCHECK DISCLAIMER BOX ---
-    const disclaimerText = "RefCheck is committed to providing accurate and up-to-date information to the best of its abilities. However, please note that the information presented by RefCheck may not always be entirely accurate, complete, or current. Due to the dynamic nature of information and the vast amount of data available, it is possible that some information may be inaccurate, outdated, or subject to change. RefCheck does not assume any responsibility or liability for any errors, inaccuracies, omissions, or inconsistencies in the information provided. Users rely on the information provided by RefCheck at their own risk.";
-    const discHeight = doc.heightOfString(disclaimerText, { width: 495 });
-    
-    if (qaY + discHeight + 50 > 770) {
-      doc.addPage();
-      drawPageHeader(doc);
-      qaY = 90;
+    // Draw container border on Page 1 (index 0) for Custom Questions
+    if (customStartPage === 0) {
+      const customEndPage = doc.bufferedPageRange().count - 1;
+      doc.save();
+      doc.switchToPage(0);
+      if (customEndPage === 0) {
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, customStartY, 515, qaY - customStartY - 5, 6).stroke();
+      } else {
+        doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, customStartY, 515, 760 - customStartY, 6).stroke();
+      }
+      doc.restore();
+      doc.switchToPage(customEndPage); // Restore page context
     }
 
-    qaY += 15;
-    doc.fillColor("#FFFFFF").roundedRect(40, qaY, 515, discHeight + 25, 4).fill();
-    doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, qaY, 515, discHeight + 25, 4).stroke();
+    // --- REFCHECK DISCLAIMER BOX ---
+    const disclaimerText = "RefCheck is committed to providing accurate and up-to-date information to the best of its abilities. However, please note that the information presented by RefCheck may not always be entirely accurate, complete, or current. Due to the dynamic nature of information and the vast amount of data available, it is possible that some information may be inaccurate, outdated, or subject to change. RefCheck does not assume any responsibility or liability for any errors, inaccuracies, omissions, or inconsistencies in the information provided. Users rely on the information provided by RefCheck at their own risk.";
+    doc.font("Helvetica").fontSize(7);
+    const discHeight = doc.heightOfString(disclaimerText, { width: 475, lineGap: 1.5 });
+    
+    if (qaY + discHeight + 35 > 770) {
+      doc.addPage();
+      drawPageHeader(doc);
+      qaY = 100;
+    }
 
-    doc.fillColor("#70757A").fontSize(6.5).font("Helvetica-Bold").text("REFCHECK DISCLAIMER", 50, qaY + 8);
-    doc.fillColor("#70757A").fontSize(7).font("Helvetica").text(disclaimerText, 50, qaY + 18, { width: 495, lineGap: 1.5 });
+    qaY += 10;
+    doc.fillColor("#FFFFFF").roundedRect(50, qaY, 495, discHeight + 18, 4).fill();
+    doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(50, qaY, 495, discHeight + 18, 4).stroke();
 
-    // --- FINALIZE FOOTERS ---
+    doc.fillColor("#70757A").fontSize(6.5).font("Helvetica-Bold").text("REFCHECK DISCLAIMER", 60, qaY + 6);
+    doc.fillColor("#70757A").fontSize(7).font("Helvetica").text(disclaimerText, 60, qaY + 14, { width: 475, lineGap: 1.5 });
+
+    const disclaimerEndY = qaY + discHeight + 18;
+    const disclaimerPageIndex = doc.bufferedPageRange().count - 1;
+
+    // --- FINALIZE FOOTERS & CONTAINERS ---
     const pages = doc.bufferedPageRange();
     for (let i = 0; i < pages.count; i++) {
       doc.switchToPage(i);
+      
+      if (i > 0) {
+        if (i === disclaimerPageIndex) {
+          // Last page containing the disclaimer box
+          const borderHeight = disclaimerEndY - 85 + 5;
+          doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, 85, 515, borderHeight, 6).stroke();
+        } else {
+          // Intermediate full page
+          doc.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(40, 85, 515, 700, 6).stroke();
+        }
+      }
+
       drawFooter(doc, i + 1, pages.count);
     }
 

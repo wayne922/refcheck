@@ -50,6 +50,7 @@ interface Referee {
   employerAlertedAt?: string;
   fraudFlags?: string;
   fraudFlagDetails?: string;
+  refereeToken?: string;
 }
 
 interface CandidatesProps {
@@ -1075,6 +1076,27 @@ export function Candidates({ auth }: CandidatesProps) {
                               </span>
                               <span className="flex items-center gap-1.5"><Phone className="w-4 h-4 text-muted-foreground/50" />{ref.phone}</span>
                             </div>
+
+                            {ref.refereeToken && ref.formStatus !== "Complete" && ref.formStatus !== "Substituted" && (
+                              <div className="pt-2 border-t border-border/40 mt-1 space-y-1">
+                                <span className="text-[10px] text-muted-foreground block font-semibold">Referee Vetting Portal Link:</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-secondary/60 border border-border/80 px-2 py-1.5 rounded-lg text-[10px] font-mono select-all truncate text-primary text-left">
+                                    http://localhost:5006/r/{ref.refereeToken}
+                                  </div>
+                                  <a 
+                                    href={`/r/${ref.refereeToken}`} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="p-1.5 border border-border hover:bg-secondary rounded-xl text-muted-foreground hover:text-foreground transition-all"
+                                    title="Open Referee Form"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+
                             {ref.formStatus === "Complete" && (
                               <div className="pt-2 flex flex-wrap gap-2.5 border-t border-border/60">
                                 <button

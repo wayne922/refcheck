@@ -118,6 +118,53 @@ export function Dashboard({ auth }: DashboardProps) {
         )}
       </div>
 
+      {/* Interactive Demo Banner */}
+      <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl relative overflow-hidden group hover:shadow-md transition-all duration-300">
+        <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-primary/10 text-primary rounded-xl flex-shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+              💡 Interactive Workflow Demo Guide
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-3xl">
+              Experience the complete RefCheck workflow end-to-end using our pre-configured candidate <strong>David Miller</strong>:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-primary uppercase">Step 1: Candidate Nomination</span>
+                <p className="text-[11px] text-muted-foreground">Go to the Candidate Portal to consent and submit referee details.</p>
+                <a 
+                  href="/c/mock-token-david" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5"
+                >
+                  Open Candidate Form
+                  <ArrowUpRight className="w-3 h-3" />
+                </a>
+              </div>
+              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-amber-600 uppercase">Step 2: Referee Questionnaire</span>
+                <p className="text-[11px] text-muted-foreground">Open David Miller under <strong>Candidates</strong> and copy the generated Vetting Link to answer the questionnaire.</p>
+              </div>
+              <div className="bg-card border border-border p-3.5 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-green-600 uppercase">Step 3: Verification & PDF</span>
+                <p className="text-[11px] text-muted-foreground">Once answered, the check completes. View the vetting report and download the polished PDF.</p>
+                <Link href="/candidates">
+                  <a className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline pt-1.5">
+                    View Candidates Table
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
