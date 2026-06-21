@@ -20,6 +20,7 @@ import {
   Download
 } from "lucide-react";
 import { AuthState } from "../App.tsx";
+import logo from "../assets/logo.png";
 
 const renderStatusStage = (status: string) => {
   const s = (status || "").toLowerCase();
@@ -463,9 +464,7 @@ export function Candidates({ auth }: CandidatesProps) {
         <div className="flex items-center gap-6">
           {/* Logo Branding (Top-Right) */}
           <div className="flex items-center gap-3 bg-card border border-border/80 px-4 py-2 rounded-2xl shadow-xs">
-            <div className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-xl">
-              <UserCheck className="w-5 h-5" />
-            </div>
+            <img src={logo} alt="RefCheck Logo" className="w-8 h-8 object-contain" />
             <div>
               <span className="font-bold font-display text-sm tracking-tight text-foreground block leading-none">RefCheck</span>
               <span className="text-[9px] block font-bold text-muted-foreground mt-0.5 uppercase tracking-wider">Reference Vetting</span>

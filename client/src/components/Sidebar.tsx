@@ -4,9 +4,9 @@ import {
   LayoutDashboard, 
   Users, 
   Settings, 
-  LogOut, 
-  UserCheck
+  LogOut
 } from "lucide-react";
+import logo from "../assets/logo.png";
 
 interface SidebarProps {
   user: { email: string; companyName: string };
@@ -27,9 +27,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       <div className="flex flex-col">
         {/* Logo / Branding Header */}
         <div className="p-6 border-b border-border flex items-center gap-3">
-          <div className="bg-primary/10 text-primary p-2.5 rounded-2xl">
-            <UserCheck className="w-6 h-6" />
-          </div>
+          <img src={logo} alt="RefCheck Logo" className="w-9 h-9 object-contain" />
           <div>
             <span className="font-bold font-display text-lg tracking-tight text-foreground">RefCheck</span>
             <span className="text-[10px] block font-semibold text-muted-foreground -mt-0.5 uppercase tracking-wider">Reference Vetting</span>
