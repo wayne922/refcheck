@@ -9,8 +9,8 @@ async function runTests() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: "wayne@candidex.co.nz",
-      companyName: "Candidex Recruitment",
+      email: "wayne@refcheck.tech",
+      companyName: "RefCheck Recruitment",
       fullName: "Wayne Sullivan"
     })
   });

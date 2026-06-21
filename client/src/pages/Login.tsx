@@ -109,8 +109,8 @@ export function Login({ onLogin }: LoginProps) {
 
   const handleGoogleSimulate = () => {
     performLogin({
-      email: "wayne@candidex.co.nz",
-      companyName: "Candidex Recruitment",
+      email: "wayne@refcheck.tech",
+      companyName: "RefCheck Recruitment",
       fullName: "Wayne Sullivan"
     });
   };
@@ -202,7 +202,7 @@ export function Login({ onLogin }: LoginProps) {
         )}
 
         <p className="text-center text-[10px] text-muted-foreground mt-8">
-          RefCheck by Candidex • NZ & AU Compliance Safeguarded
+          RefCheck • NZ & AU Compliance Safeguarded
         </p>
       </div>
     </div>

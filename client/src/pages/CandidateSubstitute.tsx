@@ -154,7 +154,7 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
             The system has automatically dispatched an invite link to them. No further action is required from you.
           </p>
           <span className="text-[10px] text-muted-foreground block border-t border-border pt-4">
-            RefCheck by Candidex • Automated & Compliant
+            RefCheck • Automated & Compliant
           </span>
         </div>
       </div>

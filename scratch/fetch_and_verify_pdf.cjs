@@ -14,7 +14,7 @@ function signToken(userId, employerId, role, email) {
 }
 
 async function run() {
-  const recruiterAToken = signToken("usr_rec_a", "rec_emp_1", "Recruiter", "recruiter.a@candidex.co.nz");
+  const recruiterAToken = signToken("usr_rec_a", "rec_emp_1", "Recruiter", "recruiter.a@refcheck.tech");
 
   // 1. Create candidate
   const createRes = await fetch(`${BASE_URL}/api/candidates`, {
@@ -43,10 +43,10 @@ async function run() {
       referees: [
         {
           fullName: "Referee Wayne Sullivan",
-          email: "wayne@candidex.co.nz",
+          email: "wayne@refcheck.tech",
           phone: "+64 27 677 8991",
           relationship: "Manager",
-          employerName: "Candidex Recruitment",
+          employerName: "RefCheck Recruitment",
           jobTitle: "Principal Consultant",
           datesFrom: "2020-01",
           datesTo: "2024-01"
@@ -60,7 +60,7 @@ async function run() {
 
   // 3. Submit responses
   const answers = [
-    { id: "q_ece_1", type: "short_text", label: "Where did you work together?", value: "Candidex Recruitment" },
+    { id: "q_ece_1", type: "short_text", label: "Where did you work together?", value: "RefCheck Recruitment" },
     { id: "q_ece_2", type: "short_text", label: "What was your relationship?", value: "He was my manager" },
     { id: "q_ece_3", type: "short_text", label: "How long did you work together?", value: "4 years" },
     { id: "q_ece_4", type: "short_text", label: "What was the candidate's role?", value: "Teacher" },

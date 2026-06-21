@@ -10,7 +10,7 @@ async function testGeminiRoute() {
   console.log("Checking Gemini AI Question Generation endpoint...");
 
   const adminToken = jwt.sign(
-    { userId: "usr_admin_test", employerId: "rec_emp_1", email: "admin@candidex.co.nz", role: "Admin" },
+    { userId: "usr_admin_test", employerId: "rec_emp_1", email: "admin@refcheck.tech", role: "Admin" },
     JWT_SECRET,
     { expiresIn: "1h" }
   );

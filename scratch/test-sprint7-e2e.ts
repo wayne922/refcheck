@@ -19,10 +19,10 @@ async function runTests() {
   console.log("🚀 Starting Sprint 7 E2E Reporting & Dashboard Verification...\n");
 
   // Generate roles tokens
-  const adminToken = signToken("usr_admin_test", "rec_emp_1", "Admin", "admin@candidex.co.nz");
-  const recruiterAToken = signToken("usr_rec_a", "rec_emp_1", "Recruiter", "recruiter.a@candidex.co.nz");
-  const recruiterBToken = signToken("usr_rec_b", "rec_emp_1", "Recruiter", "recruiter.b@candidex.co.nz");
-  const viewerToken = signToken("usr_viewer_test", "rec_emp_1", "Viewer", "viewer@candidex.co.nz");
+  const adminToken = signToken("usr_admin_test", "rec_emp_1", "Admin", "admin@refcheck.tech");
+  const recruiterAToken = signToken("usr_rec_a", "rec_emp_1", "Recruiter", "recruiter.a@refcheck.tech");
+  const recruiterBToken = signToken("usr_rec_b", "rec_emp_1", "Recruiter", "recruiter.b@refcheck.tech");
+  const viewerToken = signToken("usr_viewer_test", "rec_emp_1", "Viewer", "viewer@refcheck.tech");
 
   console.log("🔑 Signatures and JWT tokens generated successfully.");
 

@@ -160,7 +160,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
             RefCheck will now coordinate directly with them. No further action is required from you.
           </p>
           <span className="text-[10px] text-muted-foreground block border-t border-border pt-4">
-            RefCheck by Candidex • Automated & Compliant
+            RefCheck • Automated & Compliant
           </span>
         </div>
       </div>

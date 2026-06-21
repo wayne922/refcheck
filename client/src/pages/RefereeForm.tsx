@@ -265,7 +265,7 @@ export function RefereeForm({ token }: RefereeFormProps) {
             Your contribution supports safe and fair hiring operations.
           </p>
           <span className="text-[10px] text-muted-foreground block border-t border-border pt-4">
-            RefCheck by Candidex • NZ & AU Compliance
+            RefCheck • NZ & AU Compliance
           </span>
         </div>
       </div>

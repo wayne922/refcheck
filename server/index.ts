@@ -93,7 +93,7 @@ const getRecruiterEmail = async (candidate: any): Promise<string> => {
       }
     }
   }
-  return "wayne@candidex.co.nz"; // Default fallback
+  return "wayne@refcheck.tech"; // Default fallback
 };
 
 
@@ -713,7 +713,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     }
 
     const employer = await airtableService.getEmployer(req.user!.employerId);
-    const brandedSenderName = employer ? employer.brandedSenderName || employer.companyName : "Candidex Recruitment";
+    const brandedSenderName = employer ? employer.brandedSenderName || employer.companyName : "RefCheck";
 
     const referees = await airtableService.getRefereesForCandidate(id);
     const completedReferees = [];
@@ -845,9 +845,9 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       const logoPath = path.resolve(process.cwd(), "client/src/assets/logo.png");
       if (fs.existsSync(logoPath)) {
         d.image(logoPath, 40, 20, { width: 22 });
-        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 68, 25);
+        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("RefCheck", 68, 25);
       } else {
-        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 40, 30);
+        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("RefCheck", 40, 30);
       }
       
       // Right header boxes

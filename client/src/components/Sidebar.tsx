@@ -32,7 +32,7 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
           </div>
           <div>
             <span className="font-bold font-display text-lg tracking-tight text-foreground">RefCheck</span>
-            <span className="text-[10px] block font-semibold text-muted-foreground -mt-0.5 uppercase tracking-wider">Candidex Vetting</span>
+            <span className="text-[10px] block font-semibold text-muted-foreground -mt-0.5 uppercase tracking-wider">Reference Vetting</span>
           </div>
         </div>
 

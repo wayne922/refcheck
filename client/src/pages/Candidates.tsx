@@ -468,7 +468,7 @@ export function Candidates({ auth }: CandidatesProps) {
             </div>
             <div>
               <span className="font-bold font-display text-sm tracking-tight text-foreground block leading-none">RefCheck</span>
-              <span className="text-[9px] block font-bold text-muted-foreground mt-0.5 uppercase tracking-wider">Candidex Vetting</span>
+              <span className="text-[9px] block font-bold text-muted-foreground mt-0.5 uppercase tracking-wider">Reference Vetting</span>
             </div>
           </div>
 
