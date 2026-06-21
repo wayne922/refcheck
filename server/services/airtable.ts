@@ -1075,12 +1075,37 @@ export const airtableService = {
     }
     try {
       await ensureSystemTemplatesSeeded();
+
+      // 1. Get employer details to find user records belonging to this employer
+      const employer = await airtableService.getEmployer(employerId);
+      let employerUserIds = new Set<string>();
+      if (employer) {
+        const userRecords = await base("Users")
+          .select({
+            filterByFormula: `{employer} = '${employer.companyName}'`
+          })
+          .all();
+        employerUserIds = new Set(userRecords.map((r: any) => r.id));
+      }
+
+      // 2. Fetch all questionnaire templates
       const records = await base("Questionnaire_Templates")
-        .select({
-          filterByFormula: `OR({Is_System_Template} = 1, SEARCH('${employerId}', ARRAYJOIN({Created_By_Employer})))`
-        })
+        .select()
         .all();
-      return records.map((r: any) => ({ id: r.id, ...r.fields }));
+
+      // 3. Filter templates in-memory
+      const templates = records.map((r: any) => ({ id: r.id, ...r.fields }));
+      return templates.filter((t: any) => {
+        // If it's a system template, keep it
+        if (t.Is_System_Template === true || t.Is_System_Template === 1) {
+          return true;
+        }
+        // If it's a custom template, check if any creator belongs to the employer's users
+        if (Array.isArray(t.Created_By)) {
+          return t.Created_By.some((uid: string) => employerUserIds.has(uid));
+        }
+        return false;
+      });
     } catch (err) {
       console.error("Airtable error fetching questionnaire templates:", err);
       throw err;
