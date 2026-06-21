@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   RotateCcw,
   UserX,
+  UserCheck,
   Clock,
   ExternalLink,
   Copy,
@@ -19,6 +20,54 @@ import {
   Download
 } from "lucide-react";
 import { AuthState } from "../App.tsx";
+
+const renderStatusStage = (status: string) => {
+  const s = (status || "").toLowerCase();
+  const isNomination = s.includes("sent") || s.includes("nomination") || s.includes("not started");
+  const isVetting = s.includes("submitted") || s.includes("progress") || s.includes("vetting");
+  const isComplete = s.includes("complete");
+  const isFlagged = s.includes("flagged");
+
+  let bar1 = "bg-border";
+  let bar2 = "bg-border";
+  let bar3 = "bg-border";
+  let textColor = "text-blue-600";
+
+  if (isNomination) {
+    bar1 = "bg-blue-500";
+    textColor = "text-blue-600";
+  } else if (isVetting) {
+    bar1 = "bg-blue-500";
+    bar2 = "bg-amber-500 animate-pulse";
+    textColor = "text-amber-600";
+  } else if (isComplete) {
+    bar1 = "bg-green-500";
+    bar2 = "bg-green-500";
+    bar3 = "bg-green-500";
+    textColor = "text-green-600";
+  } else if (isFlagged) {
+    bar1 = "bg-red-500";
+    bar2 = "bg-red-500";
+    bar3 = "bg-red-500";
+    textColor = "text-red-600";
+  } else {
+    bar1 = "bg-blue-500";
+    textColor = "text-blue-600";
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 w-32">
+      <div className="flex items-center gap-1">
+        <div className={`h-1 flex-1 rounded-full ${bar1}`}></div>
+        <div className={`h-1 flex-1 rounded-full ${bar2}`}></div>
+        <div className={`h-1 flex-1 rounded-full ${bar3}`}></div>
+      </div>
+      <span className={`text-[10px] font-bold uppercase tracking-wider ${textColor}`}>
+        {status}
+      </span>
+    </div>
+  );
+};
 
 interface Candidate {
   id: string;
@@ -410,15 +459,29 @@ export function Candidates({ auth }: CandidatesProps) {
             Manage your candidate reference checks and check status reports.
           </p>
         </div>
-        {!isViewer && (
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-medium rounded-full text-sm hover:opacity-95 shadow-sm transition-all cursor-pointer"
-          >
-            <Plus className="w-5 h-5" />
-            Add Candidate
-          </button>
-        )}
+        
+        <div className="flex items-center gap-6">
+          {/* Logo Branding (Top-Right) */}
+          <div className="flex items-center gap-3 bg-card border border-border/80 px-4 py-2 rounded-2xl shadow-xs">
+            <div className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-xl">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold font-display text-sm tracking-tight text-foreground block leading-none">RefCheck</span>
+              <span className="text-[9px] block font-bold text-muted-foreground mt-0.5 uppercase tracking-wider">Candidex Vetting</span>
+            </div>
+          </div>
+
+          {!isViewer && (
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-medium rounded-full text-sm hover:opacity-95 shadow-sm transition-all cursor-pointer"
+            >
+              <Plus className="w-5 h-5" />
+              Add Candidate
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -672,18 +735,7 @@ export function Candidates({ auth }: CandidatesProps) {
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">{cand.assignedPackage}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          status === "Complete" 
-                            ? "bg-green-500/10 text-green-600" 
-                            : status === "Flagged"
-                            ? "bg-red-500/10 text-red-600"
-                            : status === "In Progress"
-                            ? "bg-amber-500/10 text-amber-600"
-                            : "bg-blue-500/10 text-blue-600"
-                        }`}>
-                          {status === "Flagged" && <AlertTriangle className="w-3.5 h-3.5" />}
-                          {status}
-                        </span>
+                        {renderStatusStage(status)}
                       </td>
                       <td className="px-6 py-4 text-muted-foreground text-xs">{cand.createdAt.split("T")[0]}</td>
                       <td className="px-6 py-4 text-right">

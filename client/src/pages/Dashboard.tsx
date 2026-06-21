@@ -5,11 +5,60 @@ import {
   Clock, 
   CheckCircle2, 
   PlusCircle, 
-  ArrowUpRight 
+  ArrowUpRight,
+  UserCheck
 } from "lucide-react";
 import { Link } from "wouter";
 
 import { AuthState } from "../App.tsx";
+
+const renderStatusStage = (status: string) => {
+  const s = (status || "").toLowerCase();
+  const isNomination = s.includes("sent") || s.includes("nomination") || s.includes("not started");
+  const isVetting = s.includes("submitted") || s.includes("progress") || s.includes("vetting");
+  const isComplete = s.includes("complete");
+  const isFlagged = s.includes("flagged");
+
+  let bar1 = "bg-border";
+  let bar2 = "bg-border";
+  let bar3 = "bg-border";
+  let textColor = "text-blue-600";
+
+  if (isNomination) {
+    bar1 = "bg-blue-500";
+    textColor = "text-blue-600";
+  } else if (isVetting) {
+    bar1 = "bg-blue-500";
+    bar2 = "bg-amber-500 animate-pulse";
+    textColor = "text-amber-600";
+  } else if (isComplete) {
+    bar1 = "bg-green-500";
+    bar2 = "bg-green-500";
+    bar3 = "bg-green-500";
+    textColor = "text-green-600";
+  } else if (isFlagged) {
+    bar1 = "bg-red-500";
+    bar2 = "bg-red-500";
+    bar3 = "bg-red-500";
+    textColor = "text-red-600";
+  } else {
+    bar1 = "bg-blue-500";
+    textColor = "text-blue-600";
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 w-32">
+      <div className="flex items-center gap-1">
+        <div className={`h-1 flex-1 rounded-full ${bar1}`}></div>
+        <div className={`h-1 flex-1 rounded-full ${bar2}`}></div>
+        <div className={`h-1 flex-1 rounded-full ${bar3}`}></div>
+      </div>
+      <span className={`text-[10px] font-bold uppercase tracking-wider ${textColor}`}>
+        {status}
+      </span>
+    </div>
+  );
+};
 
 interface DashboardProps {
   auth: AuthState;
@@ -110,16 +159,29 @@ export function Dashboard({ auth }: DashboardProps) {
           </p>
         </div>
         
-        {auth.user.role !== "Viewer" && (
-          <div>
-            <Link href="/candidates">
-              <a className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-medium rounded-full text-sm hover:opacity-95 shadow-sm transition-all cursor-pointer">
-                <PlusCircle className="w-4 h-4" />
-                New Candidate
-              </a>
-            </Link>
+        <div className="flex items-center gap-6">
+          {/* Logo Branding (Top-Right) */}
+          <div className="flex items-center gap-3 bg-card border border-border/80 px-4 py-2 rounded-2xl shadow-xs">
+            <div className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-xl">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold font-display text-sm tracking-tight text-foreground block leading-none">RefCheck</span>
+              <span className="text-[9px] block font-bold text-muted-foreground mt-0.5 uppercase tracking-wider">Candidex Vetting</span>
+            </div>
           </div>
-        )}
+
+          {auth.user.role !== "Viewer" && (
+            <div>
+              <Link href="/candidates">
+                <a className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground font-medium rounded-full text-sm hover:opacity-95 shadow-sm transition-all cursor-pointer">
+                  <PlusCircle className="w-4 h-4" />
+                  New Candidate
+                </a>
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Interactive Demo Banner (rendered only in Mock Mode for testing) */}
@@ -261,17 +323,7 @@ export function Dashboard({ auth }: DashboardProps) {
                       </td>
                       <td className="px-6 py-4 font-medium text-muted-foreground">{cand.roleAppliedFor}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                          cand.status === "Complete" 
-                            ? "bg-green-500/10 text-green-600" 
-                            : cand.status === "Flagged"
-                            ? "bg-red-500/10 text-red-600"
-                            : cand.status === "In Progress"
-                            ? "bg-amber-500/10 text-amber-600"
-                            : "bg-blue-500/10 text-blue-600"
-                        }`}>
-                          {cand.status}
-                        </span>
+                        {renderStatusStage(cand.status)}
                       </td>
                       <td className="px-6 py-4 text-xs text-muted-foreground">{new Date(cand.createdAt).toLocaleDateString()}</td>
                     </tr>
