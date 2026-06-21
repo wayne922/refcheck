@@ -11,6 +11,8 @@ import { emailService } from "./services/email.ts";
 import { smsService } from "./services/sms.ts";
 import { detectFraud } from "./services/fraudDetection.ts";
 import PDFDocument from "pdfkit";
+import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -771,59 +773,82 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
     const drawISOBadge = (d: any, x: number, y: number) => {
       d.save();
       // Draw border
-      d.fillColor("#FFFFFF").roundedRect(x, y, 40, 45, 4).fill();
-      d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 40, 45, 4).stroke();
+      d.fillColor("#FFFFFF").roundedRect(x, y, 42, 45, 8).fill();
+      d.strokeColor("#E2E8F0").lineWidth(0.75).roundedRect(x, y, 42, 45, 8).stroke();
       
       // Draw globe icon
       d.strokeColor("#7E22CE").lineWidth(0.75);
-      d.circle(x + 20, y + 18, 10).stroke();
-      d.ellipse(x + 20, y + 18, 10, 4).stroke();
-      d.ellipse(x + 20, y + 18, 4, 10).stroke();
+      d.circle(x + 21, y + 16.5, 8.5).stroke();
+      d.ellipse(x + 21, y + 16.5, 8.5, 3.2).stroke();
+      d.ellipse(x + 21, y + 16.5, 3.2, 8.5).stroke();
       
       // Write "ISO"
-      d.fillColor("#7E22CE").fontSize(7).font("Helvetica-Bold");
+      d.fillColor("#7E22CE").fontSize(7.5).font("Helvetica-Bold");
       const tw = d.widthOfString("ISO");
-      d.text("ISO", x + 20 - tw / 2, y + 34);
+      d.text("ISO", x + 21 - tw / 2, y + 31.5);
       d.restore();
     };
 
     const drawQRCode = (d: any, x: number, y: number) => {
       d.save();
       // Draw border
-      d.fillColor("#FFFFFF").roundedRect(x, y, 40, 45, 4).fill();
-      d.strokeColor("#DADCE0").lineWidth(0.5).roundedRect(x, y, 40, 45, 4).stroke();
+      d.fillColor("#FFFFFF").roundedRect(x, y, 42, 45, 8).fill();
+      d.strokeColor("#E2E8F0").lineWidth(0.75).roundedRect(x, y, 42, 45, 8).stroke();
       
       // Draw simulated QR code dot grid
       d.fillColor("#1A1F2C");
-      const size = 2;
-      // Draw square corners
-      d.rect(x + 8, y + 8, 8, 8).fill();
-      d.fillColor("#FFFFFF").rect(x + 10, y + 10, 4, 4).fill();
-      d.fillColor("#1A1F2C").rect(x + 11, y + 11, 2, 2).fill();
       
-      d.rect(x + 24, y + 8, 8, 8).fill();
-      d.fillColor("#FFFFFF").rect(x + 26, y + 10, 4, 4).fill();
-      d.fillColor("#1A1F2C").rect(x + 27, y + 11, 2, 2).fill();
+      const x_start = x + 9;
+      const y_start = y + 10.5;
       
-      d.rect(x + 8, y + 26, 8, 8).fill();
-      d.fillColor("#FFFFFF").rect(x + 10, y + 28, 4, 4).fill();
-      d.fillColor("#1A1F2C").rect(x + 11, y + 29, 2, 2).fill();
+      const drawFinder = (fx: number, fy: number) => {
+        d.rect(fx, fy, 8, 8).fill();
+        d.fillColor("#FFFFFF").rect(fx + 1.5, fy + 1.5, 5, 5).fill();
+        d.fillColor("#1A1F2C").rect(fx + 2.5, fy + 2.5, 3, 3).fill();
+      };
       
-      // Draw some random modules
-      d.rect(x + 20, y + 10, size, size).fill();
-      d.rect(x + 20, y + 14, size, size).fill();
-      d.rect(x + 24, y + 20, size, size).fill();
-      d.rect(x + 28, y + 20, size, size).fill();
-      d.rect(x + 20, y + 24, size, size).fill();
-      d.rect(x + 24, y + 28, size, size).fill();
-      d.rect(x + 28, y + 28, size, size).fill();
+      // Top-Left
+      drawFinder(x_start, y_start);
+      // Top-Right
+      drawFinder(x_start + 16, y_start);
+      // Bottom-Left
+      drawFinder(x_start, y_start + 16);
+      
+      // Reset fill color for small dots
+      d.fillColor("#1A1F2C");
+      
+      const drawDot = (dx: number, dy: number) => {
+        d.rect(dx, dy, 2, 2).fill();
+      };
+      
+      // Additional QR code modules/dots matching standard layout
+      drawDot(x_start + 10, y_start + 2);
+      drawDot(x_start + 10, y_start + 6);
+      drawDot(x_start + 10, y_start + 10);
+      drawDot(x_start + 14, y_start + 6);
+      drawDot(x_start + 14, y_start + 10);
+      drawDot(x_start + 18, y_start + 10);
+      drawDot(x_start + 18, y_start + 14);
+      drawDot(x_start + 10, y_start + 18);
+      drawDot(x_start + 14, y_start + 18);
+      drawDot(x_start + 18, y_start + 18);
+      drawDot(x_start + 22, y_start + 18);
+      drawDot(x_start + 18, y_start + 22);
+      drawDot(x_start + 22, y_start + 22);
+      
       d.restore();
     };
 
     // Dynamic Header Logo & Powered Box (rendered on every page)
     const drawPageHeader = (d: any) => {
       // Left header: Logo / Brand
-      d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 40, 30);
+      const logoPath = path.resolve(process.cwd(), "client/src/assets/logo.png");
+      if (fs.existsSync(logoPath)) {
+        d.image(logoPath, 40, 20, { width: 22 });
+        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 68, 25);
+      } else {
+        d.fillColor("#1A1F2C").fontSize(14).font("Helvetica-Bold").text("candidex", 40, 30);
+      }
       
       // Right header boxes
       // 1. Powered by RefCheck card
@@ -845,7 +870,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       drawISOBadge(d, 465, 20);
 
       // 3. QR code badge
-      drawQRCode(d, 515, 20);
+      drawQRCode(d, 513, 20);
 
       d.strokeColor("#DADCE0").lineWidth(1).moveTo(40, 75).lineTo(555, 75).stroke();
     };

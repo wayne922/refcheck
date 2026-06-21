@@ -377,7 +377,7 @@ export function Candidates({ auth }: CandidatesProps) {
   };
 
   const copyCandidateLink = (token: string) => {
-    const link = `http://localhost:5006/c/${token}`;
+    const link = `${window.location.origin}/c/${token}`;
     navigator.clipboard.writeText(link);
     setCopiedToken(true);
     setTimeout(() => setCopiedToken(false), 2000);
@@ -933,7 +933,7 @@ export function Candidates({ auth }: CandidatesProps) {
                   {selectedCandidate.candidateToken ? (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-card border border-border px-3 py-2 rounded-xl text-xs font-mono select-all truncate text-primary">
-                        http://localhost:5006/c/{selectedCandidate.candidateToken}
+                        {window.location.origin}/c/{selectedCandidate.candidateToken}
                       </div>
                       <button
                         onClick={() => copyCandidateLink(selectedCandidate.candidateToken!)}
@@ -1062,6 +1062,85 @@ export function Candidates({ auth }: CandidatesProps) {
                               </div>
                             </div>
 
+                            {/* Referee Progress Stepper */}
+                            {!isSubbed && (
+                              <div className="py-2.5 px-2 bg-secondary/10 rounded-xl border border-border/30 space-y-2">
+                                <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  <span className={ref.formStatus === "Sent" || ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete" ? "text-primary font-black" : ""}>Sent</span>
+                                  <span className={ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete" ? "text-primary font-black" : ""}>Opened</span>
+                                  <span className={ref.formStatus === "In Progress" || ref.formStatus === "Complete" ? "text-primary font-black" : ""}>Answering</span>
+                                  <span className={ref.formStatus === "Complete" ? "text-green-600 font-black" : ""}>Completed</span>
+                                </div>
+                                <div className="relative flex items-center justify-between px-1">
+                                  {/* Background Line */}
+                                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-0.5 bg-secondary rounded-full"></div>
+                                  
+                                  {/* Active Line Fill */}
+                                  <div 
+                                    className={`absolute left-0 top-1/2 -translate-y-1/2 h-0.5 rounded-full transition-all duration-500 ${
+                                      ref.formStatus === "Complete" ? "bg-green-500" : "bg-primary"
+                                    }`}
+                                    style={{
+                                      width: 
+                                        ref.formStatus === "Complete" ? "100%" :
+                                        ref.formStatus === "In Progress" ? "66%" :
+                                        ref.formStatus === "Opened" ? "33%" : "0%"
+                                    }}
+                                  ></div>
+
+                                  {/* Step 1: Sent */}
+                                  <div className={`w-3 h-3 rounded-full border-2 bg-card z-10 flex items-center justify-center transition-all ${
+                                    ref.formStatus === "Sent" || ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                      ? "border-primary"
+                                      : "border-muted"
+                                  }`}>
+                                    <div className={`w-1 h-1 rounded-full ${
+                                      ref.formStatus === "Sent" || ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                        ? "bg-primary"
+                                        : "bg-transparent"
+                                    }`}></div>
+                                  </div>
+
+                                  {/* Step 2: Opened */}
+                                  <div className={`w-3 h-3 rounded-full border-2 bg-card z-10 flex items-center justify-center transition-all ${
+                                    ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                      ? "border-primary"
+                                      : "border-muted"
+                                  }`}>
+                                    <div className={`w-1 h-1 rounded-full ${
+                                      ref.formStatus === "Opened" || ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                        ? "bg-primary"
+                                        : "bg-transparent"
+                                    }`}></div>
+                                  </div>
+
+                                  {/* Step 3: Answering */}
+                                  <div className={`w-3 h-3 rounded-full border-2 bg-card z-10 flex items-center justify-center transition-all ${
+                                    ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                      ? "border-primary"
+                                      : "border-muted"
+                                  }`}>
+                                    <div className={`w-1 h-1 rounded-full ${
+                                      ref.formStatus === "In Progress" || ref.formStatus === "Complete"
+                                        ? "bg-primary" + (ref.formStatus === "In Progress" ? " animate-pulse" : "")
+                                        : "bg-transparent"
+                                    }`}></div>
+                                  </div>
+
+                                  {/* Step 4: Completed */}
+                                  <div className={`w-3 h-3 rounded-full border-2 bg-card z-10 flex items-center justify-center transition-all ${
+                                    ref.formStatus === "Complete"
+                                      ? "border-green-500 bg-green-50"
+                                      : "border-muted"
+                                  }`}>
+                                    {ref.formStatus === "Complete" && (
+                                      <div className="w-1 h-1 rounded-full bg-green-500"></div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs text-muted-foreground">
                               <span className="flex items-center gap-1.5">
                                 <Mail className="w-4 h-4 text-muted-foreground/50" />
@@ -1082,7 +1161,7 @@ export function Candidates({ auth }: CandidatesProps) {
                                 <span className="text-[10px] text-muted-foreground block font-semibold">Referee Vetting Portal Link:</span>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-secondary/60 border border-border/80 px-2 py-1.5 rounded-lg text-[10px] font-mono select-all truncate text-primary text-left">
-                                    http://localhost:5006/r/{ref.refereeToken}
+                                    {window.location.origin}/r/{ref.refereeToken}
                                   </div>
                                   <a 
                                     href={`/r/${ref.refereeToken}`} 

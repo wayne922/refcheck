@@ -25,7 +25,7 @@ export function Dashboard({ auth }: DashboardProps) {
   });
   const [recentCandidates, setRecentCandidates] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [isMock, setIsMock] = React.useState<boolean>(true);
+  const [isMock, setIsMock] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     // Fetch metrics
@@ -123,7 +123,7 @@ export function Dashboard({ auth }: DashboardProps) {
       </div>
 
       {/* Interactive Demo Banner (rendered only in Mock Mode for testing) */}
-      {isMock && (
+      {!loading && isMock && (
         <div className="bg-primary/5 border border-primary/20 p-5 rounded-2xl relative overflow-hidden group hover:shadow-md transition-all duration-300">
           <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-xl pointer-events-none group-hover:scale-125 transition-transform duration-500"></div>
           <div className="flex items-start gap-4">
