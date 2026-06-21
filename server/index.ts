@@ -29,6 +29,7 @@ if (geminiApiKey) {
 // Security & Parsing Middlewares
 app.use(helmet({
   contentSecurityPolicy: false, // Allow inline styles/scripts for Vite development
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
 }));
 app.use(cors({
   origin: true,
