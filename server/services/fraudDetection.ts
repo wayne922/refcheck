@@ -102,12 +102,8 @@ export function detectFraud(params: {
     details["shared_ip"] = "The referee submitted their response from the same IP address as the candidate.";
   }
 
-  // Heuristic 2: Personal Email Domain
+  // Heuristic 2: Personal Email Domain check (Disabled - no flag added)
   const isPersonal = PERSONAL_DOMAINS.has(domain);
-  if (isPersonal && isManagerOrDirector) {
-    flags.push("personal_email");
-    details["personal_email"] = "The referee claims a Manager/Director relationship but used a personal email address (e.g., Gmail, Outlook).";
-  }
 
   // Heuristic 3: Domain Mismatch
   if (!isPersonal && domain && isManagerOrDirector && params.refereeEmployerName) {
@@ -121,25 +117,7 @@ export function detectFraud(params: {
     }
   }
 
-  // Heuristic 4: Short Response
-  let hasShortResponse = false;
-  params.answers.forEach((ans: any) => {
-    // Find the corresponding question template to see if it is required
-    const qDef = params.questions.find((q: any) => q.id === ans.id);
-    const isRequired = qDef ? !!qDef.required : false;
-
-    if (isRequired && (ans.type === "short_text" || ans.type === "long_text")) {
-      const val = typeof ans.value === "string" ? ans.value.trim() : "";
-      const wordCount = val.split(/\s+/).filter(Boolean).length;
-      if (wordCount < 20) {
-        hasShortResponse = true;
-      }
-    }
-  });
-  if (hasShortResponse) {
-    flags.push("short_response");
-    details["short_response"] = "One or more required text answers provided by the referee was extremely brief (under 20 words).";
-  }
+  // Heuristic 4: Short Response check (Disabled - no flag added)
 
   // Heuristic 5: Fast Completion
   if (params.submissionDurationSeconds > 0 && params.submissionDurationSeconds < 90) {

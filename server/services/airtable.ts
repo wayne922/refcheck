@@ -79,7 +79,9 @@ async function ensureSystemTemplatesSeeded() {
     { Name: "Senior / Executive", Description: "Leadership focus, board-level and C-suite roles", Industry: "Executive", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Senior / Executive")), Branching_Rules_JSON: "[]" },
     { Name: "Early Childhood / ECE", Description: "NZ childcare sector, working with children focus", Industry: "ECE", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Early Childhood / ECE")), Branching_Rules_JSON: "[]" },
     { Name: "Healthcare", Description: "Clinical environment, patient safety focus", Industry: "Healthcare", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Healthcare")), Branching_Rules_JSON: "[]" },
-    { Name: "Trades / Construction", Description: "Physical safety, site compliance, productivity", Industry: "Trades", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Trades / Construction")), Branching_Rules_JSON: "[]" }
+    { Name: "Trades / Construction", Description: "Physical safety, site compliance, productivity", Industry: "Trades", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Trades / Construction")), Branching_Rules_JSON: "[]" },
+    { Name: "General Reference", Description: "General professional reference template with education questions removed", Industry: "General", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("General Reference")), Branching_Rules_JSON: "[]" },
+    { Name: "Character Reference", Description: "Standalone template focusing strictly on character and personal integrity", Industry: "Character", Is_System_Template: true, Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Character Reference")), Branching_Rules_JSON: "[]" }
   ];
 
   try {
@@ -159,6 +161,39 @@ const createQuestionsSeed = (templateName: string): any[] => {
         { id: "q_ece_22", type: "yes_no", label: "If given the opportunity, would you rehire the candidate?", required: true, order: 22, risk_rule: { condition: "equals", value: "no", severity: "high" } },
         { id: "q_ece_23", type: "long_text", label: "Is there anything further you wish to add to the candidate's reference?", description: "Note: this reference will be shared with prospective employers.", required: false, order: 23 },
         { id: "q_ece_24", type: "yes_no", label: "Do you give permission for us to share this reference with the candidate if requested?", required: true, order: 24 }
+      ];
+    case "General Reference":
+      return [
+        { id: "q_gen_1", type: "short_text", label: "Where did you work together?", required: true, order: 1 },
+        { id: "q_gen_2", type: "short_text", label: "What was your relationship?", required: true, order: 2 },
+        { id: "q_gen_3", type: "short_text", label: "How long did you work together?", required: true, order: 3 },
+        { id: "q_gen_4", type: "short_text", label: "What was the candidate's role?", required: true, order: 4 },
+        { id: "q_gen_5", type: "long_text", label: "Why did they finish their employment?", required: true, order: 5 },
+        { id: "q_gen_6", type: "short_text", label: "Please state the candidate's name and how you know them.", required: true, order: 6 },
+        { id: "q_gen_7", type: "yes_no", label: "Did the candidate report directly to you in their role?", required: true, order: 7 },
+        { id: "q_gen_8", type: "rating", label: "How would you describe their overall job performance when you worked with them?", description: "1 is Poor, 5 is Fantastic", required: true, order: 8 },
+        { id: "q_gen_9", type: "long_text", label: "Please describe their personality and approachability.", required: true, order: 9 },
+        { id: "q_gen_10", type: "long_text", label: "How would their team members describe them?", required: true, order: 10 },
+        { id: "q_gen_11", type: "long_text", label: "What skills do you believe the candidate could bring to an organisation?", required: true, order: 11 },
+        { id: "q_gen_12", type: "long_text", label: "Did they show empathy, were they caring? Can you provide an example?", required: true, order: 12 },
+        { id: "q_gen_13", type: "rating", label: "How would you rate their reliability, punctuality, and attendance?", description: "1 is Poor, 5 is Excellent", required: true, order: 13 },
+        { id: "q_gen_14", type: "yes_no", label: "While they were employed, are you aware of any disciplinary action against them or formal warnings given?", required: true, order: 14, risk_rule: { condition: "equals", value: "yes", severity: "high" } },
+        { id: "q_gen_15", type: "yes_no", label: "Are you aware of any accidents, incidents, or conflicts being caused as a result of their carelessness or negligence?", required: true, order: 15, risk_rule: { condition: "equals", value: "yes", severity: "high" } },
+        { id: "q_gen_16", type: "yes_no", label: "Would you recommend the candidate to future employers?", required: true, order: 16, risk_rule: { condition: "equals", value: "no", severity: "high" } },
+        { id: "q_gen_17", type: "yes_no", label: "If given the opportunity, would you rehire the candidate?", required: true, order: 17, risk_rule: { condition: "equals", value: "no", severity: "high" } },
+        { id: "q_gen_18", type: "long_text", label: "Is there anything further you wish to add to the candidate's reference?", description: "Note: this reference will be shared with prospective employers.", required: false, order: 18 },
+        { id: "q_gen_19", type: "yes_no", label: "Do you give permission for us to share this reference with the candidate if requested?", required: true, order: 19 }
+      ];
+    case "Character Reference":
+      return [
+        { id: "q_char_1", type: "short_text", label: "How do you know the candidate and for how long?", required: true, order: 1 },
+        { id: "q_char_2", type: "long_text", label: "How would you describe their integrity, honesty, and overall moral character?", required: true, order: 2 },
+        { id: "q_char_3", type: "long_text", label: "How reliable, dependable, and trustworthy do you consider the candidate to be?", required: true, order: 3 },
+        { id: "q_char_4", type: "long_text", label: "How does the candidate handle stressful situations or conflicts with others?", required: true, order: 4 },
+        { id: "q_char_5", type: "yes_no", label: "Are you aware of any reasons, past incidents, or behaviors that would make the candidate unsuitable for a position of trust?", required: true, order: 5, risk_rule: { condition: "equals", value: "yes", severity: "high" } },
+        { id: "q_char_6", type: "yes_no", label: "Would you recommend the candidate for a role involving high trust or responsibility?", required: true, order: 6, risk_rule: { condition: "equals", value: "no", severity: "high" } },
+        { id: "q_char_7", type: "long_text", label: "Is there anything further you wish to add regarding the candidate's character?", required: false, order: 7 },
+        { id: "q_char_8", type: "yes_no", label: "Do you give permission for us to share this reference with the candidate if requested?", required: true, order: 8 }
       ];
     case "Healthcare":
       return [
@@ -319,7 +354,9 @@ const mockDb: any = {
     { id: "temp_se", Name: "Senior / Executive", Description: "Leadership focus, board-level and C-suite roles", Industry: "Executive", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Senior / Executive")), Branching_Rules_JSON: "[]" },
     { id: "temp_ece", Name: "Early Childhood / ECE", Description: "NZ childcare sector, working with children focus", Industry: "ECE", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Early Childhood / ECE")), Branching_Rules_JSON: "[]" },
     { id: "temp_hc", Name: "Healthcare", Description: "Clinical environment, patient safety focus", Industry: "Healthcare", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Healthcare")), Branching_Rules_JSON: "[]" },
-    { id: "temp_tc", Name: "Trades / Construction", Description: "Physical safety, site compliance, productivity", Industry: "Trades", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Trades / Construction")), Branching_Rules_JSON: "[]" }
+    { id: "temp_tc", Name: "Trades / Construction", Description: "Physical safety, site compliance, productivity", Industry: "Trades", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Trades / Construction")), Branching_Rules_JSON: "[]" },
+    { id: "temp_gen", Name: "General Reference", Description: "General professional reference template with education questions removed", Industry: "General", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("General Reference")), Branching_Rules_JSON: "[]" },
+    { id: "temp_char", Name: "Character Reference", Description: "Standalone template focusing strictly on character and personal integrity", Industry: "Character", Is_System_Template: true, Created_At: new Date().toISOString(), Status: "Active", Questions_JSON: JSON.stringify(createQuestionsSeed("Character Reference")), Branching_Rules_JSON: "[]" }
   ],
   referees: [
     // Sarah Jenkins Referees
@@ -1248,6 +1285,7 @@ export const airtableService = {
     datesTo: string;
     candidateId: string;
     refereeToken: string;
+    referenceType?: string;
   }) => {
     const fields: any = {
       fullName: data.fullName,
@@ -1263,6 +1301,7 @@ export const airtableService = {
       tokenExpiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       formStatus: "Not Sent",
       isSubstitute: false,
+      referenceType: data.referenceType || "Early Childhood / ECE",
     };
 
     if (isMock) {

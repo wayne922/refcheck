@@ -1352,7 +1352,8 @@ app.post("/api/candidates/:id/referees", async (req, res) => {
           datesFrom: ref.datesFrom || "",
           datesTo: ref.datesTo || "",
           candidateId: id,
-          refereeToken
+          refereeToken,
+          referenceType: ref.referenceType
         });
 
         // Dispatch dynamic SendGrid invitation email & Twilio SMS (simulated in mock/dev mode)
@@ -1411,6 +1412,19 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
     // Generate refereeToken
     const refereeToken = crypto.randomBytes(8).toString("hex");
 
+    // Retrieve original referee's referenceType to carry it over
+    let referenceType = "Early Childhood / ECE";
+    if (originalRefereeId) {
+      try {
+        const originalReferee = await airtableService.getReferee(originalRefereeId);
+        if (originalReferee && originalReferee.referenceType) {
+          referenceType = originalReferee.referenceType;
+        }
+      } catch (e) {
+        console.warn(`[Substitute Referee] Could not retrieve original referee ${originalRefereeId} referenceType:`, e);
+      }
+    }
+
     // Create substitute referee record
     const substituteRecord = await airtableService.createReferee({
       fullName: referee.fullName,
@@ -1422,7 +1436,8 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
       datesFrom: referee.datesFrom || "",
       datesTo: referee.datesTo || "",
       candidateId: id,
-      refereeToken
+      refereeToken,
+      referenceType
     });
 
     // Mark original referee as 'Substituted' if originalRefereeId was provided
@@ -1486,8 +1501,9 @@ app.get("/api/referees/by-token/:token", async (req, res) => {
       return res.status(404).json({ success: false, error: "Candidate associated with this referee not found" });
     }
 
-    // Resolve assigned template from candidate assignedPackage
-    const template = await airtableService.getQuestionnaireTemplateByName(candidate.assignedPackage);
+    // Resolve assigned template from referee.referenceType (falling back to candidate.assignedPackage)
+    const templateName = referee.referenceType || candidate.assignedPackage;
+    const template = await airtableService.getQuestionnaireTemplateByName(templateName);
     if (!template) {
       return res.status(404).json({ success: false, error: "Assigned questionnaire template not found" });
     }
