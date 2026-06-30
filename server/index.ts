@@ -1017,11 +1017,24 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       "q_ece_2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
       "q_ece_3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" },
       "q_ece_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
-      "q_ece_5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" }
+      "q_ece_5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" },
+
+      "q_gen_1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "employerName" },
+      "q_gen_2": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
+      "q_gen_3": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" },
+      "q_gen_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
+      "q_gen_5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" },
+
+      "q_char_1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" }
     };
 
     // Filter verification questions
-    const verificationQIds = ["q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_gp5", "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4", "q_ece_5"];
+    const verificationQIds = [
+      "q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_gp5",
+      "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4", "q_ece_5",
+      "q_gen_1", "q_gen_2", "q_gen_3", "q_gen_4", "q_gen_5",
+      "q_char_1"
+    ];
     const verificationQuestions = questions.filter((q: any) => verificationQIds.includes(q.id));
     const normalQuestions = questions.filter((q: any) => !verificationQIds.includes(q.id));
 
@@ -1041,7 +1054,11 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         let candidateVal = "Not provided";
         if (mapping) {
           if (mapping.field === "datesFrom") {
-            candidateVal = `${ref.datesFrom || ""} to ${ref.datesTo || "Present"}`;
+            if (ref.referenceType === "Character Reference") {
+              candidateVal = `${ref.relationship || ""} / ${ref.datesFrom || ""}${ref.datesTo ? " to " + ref.datesTo : ""}`;
+            } else {
+              candidateVal = `${ref.datesFrom || ""} to ${ref.datesTo || "Present"}`;
+            }
           } else if (mapping.field === "reasonForLeaving") {
             const isStillWorking = !ref.datesTo || ref.datesTo.toLowerCase().includes("present") || ref.datesTo.toLowerCase() === "still working";
             candidateVal = isStillWorking 

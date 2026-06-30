@@ -27,6 +27,7 @@ interface RefereeInput {
   datesFrom: string;
   datesTo: string;
   referenceType: string;
+  useDateRange?: boolean;
 }
 
 export function CandidateNominate({ token }: CandidateNominateProps) {
@@ -46,8 +47,8 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
 
   // Default nomination fields for 2 referees (standard requirement)
   const [referees, setReferees] = useState<RefereeInput[]>([
-    { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE" },
-    { fullName: "", email: "", phone: "", relationship: "Peer", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE" }
+    { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
+    { fullName: "", email: "", phone: "", relationship: "Peer", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false }
   ]);
 
   useEffect(() => {
@@ -304,11 +305,11 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
 
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        Referee Stated Employer
+                        {ref.referenceType === "Character Reference" ? "Referee Employer / Organization (Optional)" : "Referee Stated Employer"}
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Tiny Tots Kindergarten"
+                        placeholder={ref.referenceType === "Character Reference" ? "e.g. University, Community Group, Company" : "e.g. Tiny Tots Kindergarten"}
                         value={ref.employerName}
                         onChange={(e) => handleUpdateReferee(idx, { employerName: e.target.value })}
                         className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
@@ -317,40 +318,107 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
 
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        Referee Job Title
+                        {ref.referenceType === "Character Reference" ? "Referee Job Title / Profession (Optional)" : "Referee Job Title"}
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Center Director"
+                        placeholder={ref.referenceType === "Character Reference" ? "e.g. Manager, Teacher, Retired" : "e.g. Center Director"}
                         value={ref.jobTitle}
                         onChange={(e) => handleUpdateReferee(idx, { jobTitle: e.target.value })}
                         className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        Employment Start Date
-                      </label>
-                      <input
-                        type="date"
-                        value={ref.datesFrom}
-                        onChange={(e) => handleUpdateReferee(idx, { datesFrom: e.target.value })}
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                      />
-                    </div>
+                    {ref.referenceType === "Character Reference" ? (
+                      <div className="col-span-1 md:col-span-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Length of Relationship *
+                          </label>
+                          <label className="flex items-center gap-1.5 text-[10px] font-semibold cursor-pointer text-primary">
+                            <input
+                              type="checkbox"
+                              checked={!!ref.useDateRange}
+                              onChange={(e) => {
+                                handleUpdateReferee(idx, { 
+                                  useDateRange: e.target.checked,
+                                  datesFrom: "",
+                                  datesTo: ""
+                                });
+                              }}
+                              className="w-3.5 h-3.5 text-primary bg-secondary border-border rounded focus:ring-primary/20"
+                            />
+                            <span>Use specific date range</span>
+                          </label>
+                        </div>
 
-                    <div>
-                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                        Employment End Date
-                      </label>
-                      <input
-                        type="date"
-                        value={ref.datesTo}
-                        onChange={(e) => handleUpdateReferee(idx, { datesTo: e.target.value })}
-                        className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                      />
-                    </div>
+                        {ref.useDateRange ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                Relationship Start Date *
+                              </label>
+                              <input
+                                type="date"
+                                required
+                                value={ref.datesFrom}
+                                onChange={(e) => handleUpdateReferee(idx, { datesFrom: e.target.value })}
+                                className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                                Relationship End Date (or present) *
+                              </label>
+                              <input
+                                type="date"
+                                required
+                                value={ref.datesTo}
+                                onChange={(e) => handleUpdateReferee(idx, { datesTo: e.target.value })}
+                                className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 5 years, since childhood, since 2018"
+                              value={ref.datesFrom}
+                              onChange={(e) => handleUpdateReferee(idx, { datesFrom: e.target.value })}
+                              className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Employment Start Date
+                          </label>
+                          <input
+                            type="date"
+                            value={ref.datesFrom}
+                            onChange={(e) => handleUpdateReferee(idx, { datesFrom: e.target.value })}
+                            className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Employment End Date
+                          </label>
+                          <input
+                            type="date"
+                            value={ref.datesTo}
+                            onChange={(e) => handleUpdateReferee(idx, { datesTo: e.target.value })}
+                            className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="mt-5 space-y-3">

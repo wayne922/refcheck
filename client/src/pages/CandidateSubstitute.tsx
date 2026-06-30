@@ -23,6 +23,7 @@ interface Referee {
   employerName: string;
   jobTitle: string;
   formStatus: string;
+  referenceType?: string;
 }
 
 export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
@@ -50,6 +51,7 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
   const [jobTitle, setJobTitle] = useState("");
   const [datesFrom, setDatesFrom] = useState("");
   const [datesTo, setDatesTo] = useState("");
+  const [useDateRange, setUseDateRange] = useState(false);
 
   useEffect(() => {
     const fetchCandidateAndReferees = async () => {
@@ -71,6 +73,15 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
     };
     fetchCandidateAndReferees();
   }, [token]);
+
+  useEffect(() => {
+    if (selectedRefereeToReplace) {
+      const isChar = selectedRefereeToReplace.referenceType === "Character Reference";
+      setUseDateRange(!isChar);
+      setDatesFrom("");
+      setDatesTo("");
+    }
+  }, [selectedRefereeToReplace]);
 
   const handleSubmitSubstitute = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,11 +325,11 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Referee Employer Name
+                    {selectedRefereeToReplace?.referenceType === "Character Reference" ? "Referee Employer / Organization (Optional)" : "Referee Employer Name"}
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Tiny Tots Kindergarten"
+                    placeholder={selectedRefereeToReplace?.referenceType === "Character Reference" ? "e.g. University, Community Group, Company" : "e.g. Tiny Tots Kindergarten"}
                     value={employerName}
                     onChange={(e) => setEmployerName(e.target.value)}
                     className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
@@ -327,40 +338,105 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Referee Job Title
+                    {selectedRefereeToReplace?.referenceType === "Character Reference" ? "Referee Job Title / Profession (Optional)" : "Referee Job Title"}
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Center Director"
+                    placeholder={selectedRefereeToReplace?.referenceType === "Character Reference" ? "e.g. Manager, Teacher, Retired" : "e.g. Center Director"}
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value)}
                     className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Employment Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={datesFrom}
-                    onChange={(e) => setDatesFrom(e.target.value)}
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                  />
-                </div>
+                {selectedRefereeToReplace?.referenceType === "Character Reference" ? (
+                  <div className="col-span-1 md:col-span-2 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Length of Relationship *
+                      </label>
+                      <label className="flex items-center gap-1.5 text-[10px] font-semibold cursor-pointer text-primary">
+                        <input
+                          type="checkbox"
+                          checked={useDateRange}
+                          onChange={(e) => {
+                            setUseDateRange(e.target.checked);
+                            setDatesFrom("");
+                            setDatesTo("");
+                          }}
+                          className="w-3.5 h-3.5 text-primary bg-secondary border-border rounded focus:ring-primary/20"
+                        />
+                        <span>Use specific date range</span>
+                      </label>
+                    </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                    Employment End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={datesTo}
-                    onChange={(e) => setDatesTo(e.target.value)}
-                    className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                  />
-                </div>
+                    {useDateRange ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Relationship Start Date *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={datesFrom}
+                            onChange={(e) => setDatesFrom(e.target.value)}
+                            className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                            Relationship End Date (or present) *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={datesTo}
+                            onChange={(e) => setDatesTo(e.target.value)}
+                            className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. 5 years, since childhood, since 2018"
+                          value={datesFrom}
+                          onChange={(e) => setDatesFrom(e.target.value)}
+                          className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                        Employment Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={datesFrom}
+                        onChange={(e) => setDatesFrom(e.target.value)}
+                        className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                        Employment End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={datesTo}
+                        onChange={(e) => setDatesTo(e.target.value)}
+                        className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-4 border-t border-border pt-6">
