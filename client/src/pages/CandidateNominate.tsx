@@ -244,6 +244,88 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                     Referee #{idx + 1} ({ref.relationship})
                   </h3>
 
+                  <div className="space-y-3">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Reference Questionnaire Type *
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {/* ECE Reference Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "Early Childhood / ECE", relationship: "Manager" })}
+                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
+                          ref.referenceType === "Early Childhood / ECE"
+                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
+                            : "border-border bg-card hover:bg-secondary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5 w-full">
+                          <span className="font-bold text-foreground">ECE Reference</span>
+                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                            ref.referenceType === "Early Childhood / ECE" ? "border-primary bg-primary" : "border-muted-foreground"
+                          }`}>
+                            {ref.referenceType === "Early Childhood / ECE" && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Sends the standard Early Childhood Reference template for education roles.
+                        </p>
+                      </button>
+
+                      {/* Character Reference Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "Character Reference", relationship: "Mentor / Advisor" })}
+                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
+                          ref.referenceType === "Character Reference"
+                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
+                            : "border-border bg-card hover:bg-secondary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5 w-full">
+                          <span className="font-bold text-foreground">Character Reference</span>
+                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                            ref.referenceType === "Character Reference" ? "border-primary bg-primary" : "border-muted-foreground"
+                          }`}>
+                            {ref.referenceType === "Character Reference" && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Sends the new Character Reference template focusing strictly on personal integrity.
+                        </p>
+                      </button>
+
+                      {/* General Reference Option */}
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "General Reference", relationship: "Manager" })}
+                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
+                          ref.referenceType === "General Reference"
+                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
+                            : "border-border bg-card hover:bg-secondary/40"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5 w-full">
+                          <span className="font-bold text-foreground">General Reference</span>
+                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                            ref.referenceType === "General Reference" ? "border-primary bg-primary" : "border-muted-foreground"
+                          }`}>
+                            {ref.referenceType === "General Reference" && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                          Sends the new General Reference template with education-specific questions removed.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
@@ -434,90 +516,8 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                       </>
                     )}
                   </div>
-
-                  <div className="mt-5 space-y-3">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      Reference Questionnaire Type *
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {/* ECE Reference Option */}
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "Early Childhood / ECE", relationship: "Manager" })}
-                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
-                          ref.referenceType === "Early Childhood / ECE"
-                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
-                            : "border-border bg-card hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5 w-full">
-                          <span className="font-bold text-foreground">ECE Reference</span>
-                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                            ref.referenceType === "Early Childhood / ECE" ? "border-primary bg-primary" : "border-muted-foreground"
-                          }`}>
-                            {ref.referenceType === "Early Childhood / ECE" && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the standard Early Childhood Reference template for education roles.
-                        </p>
-                      </button>
-
-                      {/* Character Reference Option */}
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "Character Reference", relationship: "Mentor / Advisor" })}
-                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
-                          ref.referenceType === "Character Reference"
-                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
-                            : "border-border bg-card hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5 w-full">
-                          <span className="font-bold text-foreground">Character Reference</span>
-                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                            ref.referenceType === "Character Reference" ? "border-primary bg-primary" : "border-muted-foreground"
-                          }`}>
-                            {ref.referenceType === "Character Reference" && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the new Character Reference template focusing strictly on personal integrity.
-                        </p>
-                      </button>
-
-                      {/* General Reference Option */}
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "General Reference", relationship: "Manager" })}
-                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
-                          ref.referenceType === "General Reference"
-                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
-                            : "border-border bg-card hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5 w-full">
-                          <span className="font-bold text-foreground">General Reference</span>
-                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                            ref.referenceType === "General Reference" ? "border-primary bg-primary" : "border-muted-foreground"
-                          }`}>
-                            {ref.referenceType === "General Reference" && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the new General Reference template with education-specific questions removed.
-                        </p>
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              ))}`,StartLine:353,TargetContent:
+              ))}
             </div>
 
             <div className="flex gap-4 border-t border-border pt-6">
