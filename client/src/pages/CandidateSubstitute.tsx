@@ -78,6 +78,7 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
     if (selectedRefereeToReplace) {
       const isChar = selectedRefereeToReplace.referenceType === "Character Reference";
       setUseDateRange(!isChar);
+      setRelationship(isChar ? "Mentor / Advisor" : "Manager");
       setDatesFrom("");
       setDatesTo("");
     }
@@ -316,10 +317,24 @@ export function CandidateSubstitute({ token }: CandidateSubstituteProps) {
                     onChange={(e) => setRelationship(e.target.value)}
                     className="w-full px-3 py-2 bg-secondary border border-border rounded-xl text-xs focus:outline-none font-semibold text-primary"
                   >
-                    <option value="Manager">Manager / Director</option>
-                    <option value="Peer">Peer / Colleague</option>
-                    <option value="Client">Client</option>
-                    <option value="Other">Other</option>
+                    {selectedRefereeToReplace?.referenceType === "Character Reference" ? (
+                      <>
+                        <option value="Mentor / Advisor">Mentor / Advisor</option>
+                        <option value="Friend">Friend</option>
+                        <option value="Academic / Teacher">Academic / Teacher</option>
+                        <option value="Coach">Coach / Team Leader</option>
+                        <option value="Colleague">Colleague / Co-worker</option>
+                        <option value="Neighbor">Neighbor</option>
+                        <option value="Other">Other</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Manager">Manager / Director</option>
+                        <option value="Peer">Peer / Colleague</option>
+                        <option value="Client">Client</option>
+                        <option value="Other">Other</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

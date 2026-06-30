@@ -296,10 +296,24 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                         onChange={(e) => handleUpdateReferee(idx, { relationship: e.target.value })}
                         className="w-full px-3 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none font-semibold text-primary"
                       >
-                        <option value="Manager">Manager / Director</option>
-                        <option value="Peer">Peer / Colleague</option>
-                        <option value="Client">Client</option>
-                        <option value="Other">Other</option>
+                        {ref.referenceType === "Character Reference" ? (
+                          <>
+                            <option value="Mentor / Advisor">Mentor / Advisor</option>
+                            <option value="Friend">Friend</option>
+                            <option value="Academic / Teacher">Academic / Teacher</option>
+                            <option value="Coach">Coach / Team Leader</option>
+                            <option value="Colleague">Colleague / Co-worker</option>
+                            <option value="Neighbor">Neighbor</option>
+                            <option value="Other">Other</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Manager">Manager / Director</option>
+                            <option value="Peer">Peer / Colleague</option>
+                            <option value="Client">Client</option>
+                            <option value="Other">Other</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
@@ -429,7 +443,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                       {/* ECE Reference Option */}
                       <button
                         type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "Early Childhood / ECE" })}
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "Early Childhood / ECE", relationship: "Manager" })}
                         className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
                           ref.referenceType === "Early Childhood / ECE"
                             ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
@@ -454,7 +468,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                       {/* Character Reference Option */}
                       <button
                         type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "Character Reference" })}
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "Character Reference", relationship: "Mentor / Advisor" })}
                         className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
                           ref.referenceType === "Character Reference"
                             ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
@@ -479,7 +493,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                       {/* General Reference Option */}
                       <button
                         type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "General Reference" })}
+                        onClick={() => handleUpdateReferee(idx, { referenceType: "General Reference", relationship: "Manager" })}
                         className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
                           ref.referenceType === "General Reference"
                             ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
