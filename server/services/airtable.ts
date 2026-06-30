@@ -186,14 +186,24 @@ const createQuestionsSeed = (templateName: string): any[] => {
       ];
     case "Character Reference":
       return [
-        { id: "q_char_1", type: "short_text", label: "How do you know the candidate and for how long?", required: true, order: 1 },
-        { id: "q_char_2", type: "long_text", label: "How would you describe their integrity, honesty, and overall moral character?", required: true, order: 2 },
-        { id: "q_char_3", type: "long_text", label: "How reliable, dependable, and trustworthy do you consider the candidate to be?", required: true, order: 3 },
-        { id: "q_char_4", type: "long_text", label: "How does the candidate handle stressful situations or conflicts with others?", required: true, order: 4 },
-        { id: "q_char_5", type: "yes_no", label: "Are you aware of any reasons, past incidents, or behaviors that would make the candidate unsuitable for a position of trust?", required: true, order: 5, risk_rule: { condition: "equals", value: "yes", severity: "high" } },
-        { id: "q_char_6", type: "yes_no", label: "Would you recommend the candidate for a role involving high trust or responsibility?", required: true, order: 6, risk_rule: { condition: "equals", value: "no", severity: "high" } },
-        { id: "q_char_7", type: "long_text", label: "Is there anything further you wish to add regarding the candidate's character?", required: false, order: 7 },
-        { id: "q_char_8", type: "yes_no", label: "Do you give permission for us to share this reference with the candidate if requested?", required: true, order: 8 }
+        { id: "q_char_info", type: "section_heading", label: "Your Information (The Referee)", required: false, order: 1 },
+        { id: "q_char_date", type: "short_text", label: "Date", required: true, order: 2 },
+        { id: "q_char_name", type: "short_text", label: "Name", required: true, order: 3 },
+        { id: "q_char_email", type: "short_text", label: "Email address", required: false, order: 4 },
+        { id: "q_char_conn_header", type: "section_heading", label: "Connection to the Candidate", required: false, order: 5 },
+        { id: "q_char_conn", type: "long_text", label: "Candidate's Name & Connection: How do you know them?", required: true, order: 6 },
+        { id: "q_char_rel", type: "long_text", label: "Relationship: What was your specific relationship with the candidate?", required: true, order: 7 },
+        { id: "q_char_dur", type: "short_text", label: "Duration: How long have you known the candidate?", required: true, order: 8 },
+        { id: "q_char_eval_header", type: "section_heading", label: "Candidate Evaluation", required: false, order: 9 },
+        { id: "q_char_skills", type: "long_text", label: "Skills for ECE: What skills do you think the candidate can bring to the field of Early Childhood Education?", required: true, order: 10 },
+        { id: "q_char_pers", type: "long_text", label: "Personality & Approachability: Please describe the personality and approachability of the candidate.", required: true, order: 11 },
+        { id: "q_char_integrity", type: "long_text", label: "How would you describe their integrity, honesty, and overall moral character?", required: true, order: 12 },
+        { id: "q_char_trust", type: "long_text", label: "How reliable, dependable, and trustworthy do you consider the candidate to be?", required: true, order: 13 },
+        { id: "q_char_stress", type: "long_text", label: "How does the candidate handle stressful situations or conflicts with others?", required: true, order: 14 },
+        { id: "q_char_suitability", type: "yes_no", label: "Are you aware of any reasons, past incidents, or behaviors that would make the candidate unsuitable for a position of trust?", required: true, order: 15, risk_rule: { condition: "equals", value: "yes", severity: "high" } },
+        { id: "q_char_recommend", type: "yes_no", label: "Would you recommend the candidate for a role involving high trust or responsibility?", required: true, order: 16, risk_rule: { condition: "equals", value: "no", severity: "high" } },
+        { id: "q_char_comments", type: "long_text", label: "Is there anything further you wish to add regarding the candidate's character?", required: false, order: 17 },
+        { id: "q_char_share", type: "yes_no", label: "Do you give permission for us to share this reference with the candidate if requested?", required: true, order: 18 }
       ];
     case "Healthcare":
       return [

@@ -378,87 +378,98 @@ export function RefereeForm({ token }: RefereeFormProps) {
             <div className="space-y-6">
               {questions
                 .filter((q) => isQuestionVisible(q.id))
-                .map((q) => (
-                  <div key={q.id} className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      {q.label} {q.required && <span className="text-destructive">*</span>}
-                    </label>
-                    {q.description && (
-                      <p className="text-[11px] text-muted-foreground italic leading-none">{q.description}</p>
-                    )}
-
-                    {q.type === "short_text" && (
-                      <input
-                        type="text"
-                        required={q.required}
-                        value={answers[q.id] || ""}
-                        onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                        className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                      />
-                    )}
-
-                    {q.type === "long_text" && (
-                      <textarea
-                        required={q.required}
-                        rows={3}
-                        value={answers[q.id] || ""}
-                        onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                        className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
-                      />
-                    )}
-
-                    {q.type === "yes_no" && (
-                      <div className="flex gap-6 pt-1">
-                        {["Yes", "No"].map((opt) => (
-                          <label key={opt} className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                            <input
-                              type="radio"
-                              name={q.id}
-                              value={opt.toLowerCase()}
-                              checked={answers[q.id] === opt.toLowerCase()}
-                              onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                              className="w-4 h-4 text-primary bg-secondary border-border focus:ring-primary/20"
-                            />
-                            {opt}
-                          </label>
-                        ))}
+                .map((q) => {
+                  if (q.type === "section_heading") {
+                    return (
+                      <div key={q.id} className="pt-6 border-t border-border mt-8 first:pt-0 first:border-0 first:mt-0">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-primary">
+                          {q.label}
+                        </h3>
                       </div>
-                    )}
+                    );
+                  }
+                  return (
+                    <div key={q.id} className="space-y-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        {q.label} {q.required && <span className="text-destructive">*</span>}
+                      </label>
+                      {q.description && (
+                        <p className="text-[11px] text-muted-foreground italic leading-none">{q.description}</p>
+                      )}
 
-                    {q.type === "rating" && (
-                      <div className="flex gap-2.5 pt-1">
-                        {[1, 2, 3, 4, 5].map((val) => (
-                          <button
-                            key={val}
-                            type="button"
-                            onClick={() => handleUpdateAnswer(q.id, val)}
-                            className={`w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center transition-all border border-border ${
-                              answers[q.id] === val 
-                                ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20" 
-                                : "bg-secondary hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                            }`}
-                          >
-                            {val}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                      {q.type === "short_text" && (
+                        <input
+                          type="text"
+                          required={q.required}
+                          value={answers[q.id] || ""}
+                          onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                          className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                        />
+                      )}
 
-                    {q.type === "dropdown" && (
-                      <select
-                        required={q.required}
-                        value={answers[q.id] || ""}
-                        onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
-                        className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none font-semibold text-primary"
-                      >
-                        <option value="">Select option...</option>
-                        {q.options?.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                ))}
+                      {q.type === "long_text" && (
+                        <textarea
+                          required={q.required}
+                          rows={3}
+                          value={answers[q.id] || ""}
+                          onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                          className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none"
+                        />
+                      )}
+
+                      {q.type === "yes_no" && (
+                        <div className="flex gap-6 pt-1">
+                          {["Yes", "No"].map((opt) => (
+                            <label key={opt} className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                              <input
+                                type="radio"
+                                name={q.id}
+                                value={opt.toLowerCase()}
+                                checked={answers[q.id] === opt.toLowerCase()}
+                                onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                                className="w-4 h-4 text-primary bg-secondary border-border focus:ring-primary/20"
+                              />
+                              {opt}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {q.type === "rating" && (
+                        <div className="flex gap-2.5 pt-1">
+                          {[1, 2, 3, 4, 5].map((val) => (
+                            <button
+                              key={val}
+                              type="button"
+                              onClick={() => handleUpdateAnswer(q.id, val)}
+                              className={`w-10 h-10 rounded-xl font-bold text-xs flex items-center justify-center transition-all border border-border ${
+                                answers[q.id] === val 
+                                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20" 
+                                  : "bg-secondary hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                              }`}
+                            >
+                              {val}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {q.type === "dropdown" && (
+                        <select
+                          required={q.required}
+                          value={answers[q.id] || ""}
+                          onChange={(e) => handleUpdateAnswer(q.id, e.target.value)}
+                          className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-xs focus:outline-none font-semibold text-primary"
+                        >
+                          <option value="">Select option...</option>
+                          {q.options?.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="flex gap-4 border-t border-border pt-6">

@@ -96,10 +96,10 @@ async function runTests() {
   const charQuestions = fetchCharData.questions || [];
   console.log(`   Fetched ${charQuestions.length} questions for Character Reference`);
   
-  // Verify Character Reference questions (e.g. no child-specific questions, relationship nature, integrity etc.)
-  const hasChildEceQuestion = charQuestions.some((q: any) => q.label.toLowerCase().includes("child") || q.label.toLowerCase().includes("education"));
-  if (hasChildEceQuestion) {
-    throw new Error("❌ FAILURE: Character Reference template contains ECE/child-specific questions!");
+  // Verify Character Reference questions (e.g. connection, relationship, ECE reliever questions)
+  const hasEceRelieverQuestion = charQuestions.some((q: any) => q.label.toLowerCase().includes("personality") && q.label.toLowerCase().includes("approachability"));
+  if (!hasEceRelieverQuestion) {
+    throw new Error("❌ FAILURE: Character Reference template is missing ECE Reliever questions!");
   }
   const hasIntegrityQuestion = charQuestions.some((q: any) => q.label.toLowerCase().includes("integrity") || q.label.toLowerCase().includes("dependability"));
   if (!hasIntegrityQuestion) {
