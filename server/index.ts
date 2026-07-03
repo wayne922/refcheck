@@ -677,14 +677,40 @@ app.get("/api/candidates/:id/report", authMiddleware as any, async (req: Authent
       ? Number((ratingSum / ratingCount).toFixed(1))
       : null;
 
-    const template = await airtableService.getQuestionnaireTemplateByName(candidate.assignedPackage);
-    const questions = template ? JSON.parse(template.Questions_JSON) : [];
+    // Resolve all unique template questions for this candidate and their completed referees
+    const packageTemplate = await airtableService.getQuestionnaireTemplateByName(candidate.assignedPackage);
+    const packageQuestions = packageTemplate ? JSON.parse(packageTemplate.Questions_JSON) : [];
+
+    const uniqueQuestionsMap = new Map();
+    for (const q of packageQuestions) {
+      uniqueQuestionsMap.set(q.id, q);
+    }
+
+    // Include questions from each completed referee's template
+    const refereesWithQuestions = await Promise.all(
+      refereesWithResponses.map(async (ref: any) => {
+        const refTemplateName = ref.referenceType || candidate.assignedPackage;
+        const refTemplate = await airtableService.getQuestionnaireTemplateByName(refTemplateName);
+        const refQuestions = refTemplate ? JSON.parse(refTemplate.Questions_JSON) : [];
+        
+        for (const q of refQuestions) {
+          uniqueQuestionsMap.set(q.id, q);
+        }
+
+        return {
+          ...ref,
+          questionIds: refQuestions.map((q: any) => q.id)
+        };
+      })
+    );
+
+    const questions = Array.from(uniqueQuestionsMap.values());
 
     return res.status(200).json({
       success: true,
       report: {
         candidate,
-        referees: refereesWithResponses,
+        referees: refereesWithQuestions,
         questions,
         overallAverageRating
       }
@@ -1025,7 +1051,10 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       "q_gen_4": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "jobTitle" },
       "q_gen_5": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "reasonForLeaving" },
 
-      "q_char_1": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" }
+      "q_char_name": { candidateLabel: "Candidate Nominated", refLabel: "Referee Confirmed", field: "fullName" },
+      "q_char_email": { candidateLabel: "Candidate Nominated", refLabel: "Referee Confirmed", field: "email" },
+      "q_char_rel": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "relationship" },
+      "q_char_dur": { candidateLabel: "Candidate Stated", refLabel: "Referee Confirmed", field: "datesFrom" }
     };
 
     // Filter verification questions
@@ -1033,10 +1062,8 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       "q_gp1", "q_gp2", "q_gp3", "q_gp4", "q_gp5",
       "q_ece_1", "q_ece_2", "q_ece_3", "q_ece_4", "q_ece_5",
       "q_gen_1", "q_gen_2", "q_gen_3", "q_gen_4", "q_gen_5",
-      "q_char_1"
+      "q_char_name", "q_char_email", "q_char_rel", "q_char_dur"
     ];
-    const verificationQuestions = questions.filter((q: any) => verificationQIds.includes(q.id));
-    const normalQuestions = questions.filter((q: any) => !verificationQIds.includes(q.id));
 
     let verIndex = 1;
     for (const ref of completedReferees) {
@@ -1045,7 +1072,14 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         refAnswers = JSON.parse(ref.response.answersJson || "[]");
       } catch (e) {}
 
-      for (const q of verificationQuestions) {
+      // Resolve referee's template and questions list dynamically!
+      const refTemplateName = ref.referenceType || candidate.assignedPackage;
+      const refTemplate = await airtableService.getQuestionnaireTemplateByName(refTemplateName);
+      const refQuestions = refTemplate ? JSON.parse(refTemplate.Questions_JSON) : [];
+
+      const refVerificationQuestions = refQuestions.filter((q: any) => verificationQIds.includes(q.id));
+
+      for (const q of refVerificationQuestions) {
         const mapping = verificationMap[q.id];
         const ans = refAnswers.find((a: any) => a.id === q.id);
         const ansVal = ans ? String(ans.value) : "No response provided.";
@@ -1087,7 +1121,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         }
 
         // Draw question index & text
-        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 50, qaY);
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${refQuestions.length}`, 50, qaY);
         doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 50, qaY + 10, { width: 495 });
         
         qaY += labelHeight;
@@ -1136,7 +1170,14 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         refAnswers = JSON.parse(ref.response.answersJson || "[]");
       } catch (e) {}
 
-      for (const q of normalQuestions) {
+      // Resolve referee's template and questions list dynamically!
+      const refTemplateName = ref.referenceType || candidate.assignedPackage;
+      const refTemplate = await airtableService.getQuestionnaireTemplateByName(refTemplateName);
+      const refQuestions = refTemplate ? JSON.parse(refTemplate.Questions_JSON) : [];
+
+      const refNormalQuestions = refQuestions.filter((q: any) => !verificationQIds.includes(q.id) && q.type !== "section_heading");
+
+      for (const q of refNormalQuestions) {
         const ans = refAnswers.find((a: any) => a.id === q.id);
         const ansValue = ans ? ans.value : null;
 
@@ -1170,7 +1211,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
         }
 
         // Draw Question Label (Full width inside container)
-        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${questions.length}`, 50, qaY);
+        doc.fillColor("#70757A").fontSize(8).font("Helvetica-Bold").text(`${verIndex}/${refQuestions.length}`, 50, qaY);
         doc.fillColor("#1A1F2C").fontSize(9).font("Helvetica-Bold").text(q.label, 50, qaY + 10, { width: 495 });
         qaY += labelHeight;
 

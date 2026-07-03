@@ -1389,7 +1389,11 @@ export function Candidates({ auth }: CandidatesProps) {
                           <p className="text-xs text-muted-foreground italic">No questions defined in this template.</p>
                         ) : (
                           reportData.questions.map((q: any) => {
-                            const completedReferees = reportData.referees.filter((r: any) => r.formStatus === "Complete");
+                            const completedReferees = reportData.referees.filter(
+                              (r: any) => r.formStatus === "Complete" && (r.questionIds ? r.questionIds.includes(q.id) : true)
+                            );
+
+                            if (completedReferees.length === 0) return null;
 
                             return (
                               <div key={q.id} className="p-5 bg-card border border-border rounded-2xl space-y-4 group transition-all duration-300 hover:border-primary/30 hover:shadow-xs">
