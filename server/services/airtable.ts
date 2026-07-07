@@ -773,9 +773,21 @@ const mockDb: any = {
     }
   ]
 };
+const initialMockDbSnapshot = JSON.parse(JSON.stringify(mockDb));
 
 export const airtableService = {
   isMockMode: () => isMock,
+
+  resetMockDb: async () => {
+    if (isMock) {
+      Object.keys(mockDb).forEach(key => {
+        delete mockDb[key];
+      });
+      Object.assign(mockDb, JSON.parse(JSON.stringify(initialMockDbSnapshot)));
+    }
+  },
+
+  getMockDb: () => mockDb,
 
   // Employers Table
   getEmployer: async (id: string) => {

@@ -22,6 +22,8 @@ export interface EmailPayload {
   html?: string;
 }
 
+export const emailLogs: any[] = [];
+
 export const emailService = {
   isMockMode: () => isMock,
 
@@ -37,6 +39,17 @@ export const emailService = {
         console.log(`Message:  ${payload.text || payload.html}`);
       }
       console.log("========================================================\n");
+
+      const inviteUrl = payload.dynamicTemplateData?.inviteUrl || "";
+      const rawToken = inviteUrl ? inviteUrl.split("/").pop() : "";
+
+      emailLogs.push({
+        to: payload.to,
+        subject: payload.subject,
+        rawToken,
+        sentAt: new Date().toISOString()
+      });
+
       return { success: true, messageId: `mock_email_${Date.now()}` };
     }
 

@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 import { airtableService } from "./services/airtable.ts";
 import { serveStatic } from "./static.ts";
-import { emailService } from "./services/email.ts";
+import { emailService, emailLogs } from "./services/email.ts";
 import { smsService } from "./services/sms.ts";
 import { detectFraud } from "./services/fraudDetection.ts";
 import PDFDocument from "pdfkit";
@@ -2139,6 +2139,257 @@ if (process.env.NODE_ENV !== "production") {
     }
   });
 }
+
+// Standalone Integration / Dev endpoints (Sprint 3/5 handshake)
+app.post("/api/v1/dev/reset", async (req, res) => {
+  try {
+    await airtableService.resetMockDb();
+    emailLogs.length = 0;
+    return res.status(200).json({ success: true, message: "Mock database and email logs reset successfully" });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/v1/dev/emails", async (req, res) => {
+  return res.status(200).json({ success: true, data: emailLogs });
+});
+
+app.post("/api/v1/references/request", async (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+  if (apiKey !== "dev-candidex-api-key") {
+    return res.status(401).json({ success: false, error: "Unauthorized: Invalid API Key" });
+  }
+
+  const {
+    candidate_id,
+    candidate_name,
+    referee_name,
+    referee_email,
+    referee_phone,
+    referee_relationship,
+    crm_source
+  } = req.body;
+
+  try {
+    // 1. Ensure Candidate exists in microservice Airtable mock
+    let candidate = await airtableService.getCandidate(candidate_id);
+    if (!candidate) {
+      candidate = await airtableService.createCandidate({
+        fullName: candidate_name,
+        email: "candidate-test@candidex.co.nz", // dummy
+        phone: "021-999-9999",
+        roleAppliedFor: "ECE Teacher",
+        employerName: "Candidex",
+        employerId: "rec_emp_1",
+        assignedPackage: "Standard 2-Referee",
+        candidateToken: `mock-token-${candidate_id}`,
+        createdBy: "rec_usr_1"
+      });
+      // override id to match candidate_id
+      candidate.id = candidate_id;
+      candidate.candidateId = candidate_id;
+    }
+
+    // 2. Create Referee record
+    const refereeToken = crypto.randomBytes(16).toString("hex");
+    const referee = await airtableService.createReferee({
+      fullName: referee_name,
+      email: referee_email,
+      phone: referee_phone,
+      relationship: referee_relationship,
+      employerName: "Candidex",
+      jobTitle: "Referee",
+      datesFrom: "2020",
+      datesTo: "2024",
+      candidateId: candidate.id,
+      refereeToken,
+      referenceType: "Early Childhood / ECE"
+    });
+
+    // Save extra custom property
+    referee.crmSource = crm_source;
+
+    // 3. Dispatch the invite email
+    await emailService.sendRefereeInvite(referee_name, referee_email, candidate_name, "Candidex", refereeToken);
+
+    // Save sentAt / emailSentAt timestamp on the referee
+    await airtableService.updateRefereeFields(referee.id, {
+      emailSentAt: new Date().toISOString(),
+      formStatus: "Sent"
+    });
+
+    return res.status(200).json({ success: true, data: { secure_token: refereeToken } });
+  } catch (err: any) {
+    console.error("Vetting request endpoint error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/v1/references/details/:token", async (req, res) => {
+  const { token } = req.params;
+  try {
+    const referee = await airtableService.getRefereeByToken(token);
+    if (!referee) {
+      return res.status(404).json({ success: false, error: "Token not found" });
+    }
+    const candidateId = Array.isArray(referee.candidate) ? referee.candidate[0] : referee.candidate;
+    const candidate = await airtableService.getCandidate(candidateId);
+    return res.status(200).json({
+      success: true,
+      data: {
+        candidate_name: candidate ? candidate.fullName : "Unknown Candidate",
+        referee_name: referee.fullName,
+        referee_relationship: referee.relationship,
+        referee_phone: referee.phone,
+        referee_email: referee.email
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/v1/references/submit/:token", async (req, res) => {
+  const { token } = req.params;
+  const {
+    years_known,
+    rating_reliability,
+    rating_teaching_quality,
+    rating_child_safety,
+    safeguarding_concerns,
+    suitability_comments,
+    digital_signature
+  } = req.body;
+
+  try {
+    const referee = await airtableService.getRefereeByToken(token);
+    if (!referee) {
+      return res.status(404).json({ success: false, error: "Referee not found" });
+    }
+    const candidateId = Array.isArray(referee.candidate) ? referee.candidate[0] : referee.candidate;
+    const candidate = await airtableService.getCandidate(candidateId);
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: "Candidate not found" });
+    }
+
+    // Save the responses in the microservice local tables
+    const overallRating = Number(((Number(rating_reliability) + Number(rating_teaching_quality) + Number(rating_child_safety)) / 3).toFixed(1)) || 5.0;
+
+    await airtableService.createRefereeResponse({
+      refereeId: referee.id,
+      answersJson: JSON.stringify([
+        { id: "years_known", value: years_known },
+        { id: "reliability", value: rating_reliability },
+        { id: "teaching_quality", value: rating_teaching_quality },
+        { id: "child_safety", value: rating_child_safety },
+        { id: "safeguarding", value: safeguarding_concerns },
+        { id: "suitability", value: suitability_comments }
+      ]),
+      overallRating,
+      wordCountTotal: suitability_comments ? suitability_comments.split(/\s+/).length : 0,
+      ipAddress: req.ip || "127.0.0.1",
+      fraudFlags: "",
+      fraudFlagDetails: "{}"
+    });
+
+    await airtableService.updateRefereeFields(referee.id, {
+      formStatus: "Complete",
+      formCompletedAt: new Date().toISOString()
+    });
+
+    // Make the webhook callback to the CRM
+    const transcript = `Professional Reference Evaluation Transcript\n---------------------------------------\nCandidate: ${candidate.fullName}\nReferee: ${referee.fullName} (${referee.relationship})\nYears Known: ${years_known}\nRatings:\n- Reliability: ${rating_reliability}/5\n- Teaching Quality: ${rating_teaching_quality}/5\n- Child Safety: ${rating_child_safety}/5\nSafeguarding Concerns: ${safeguarding_concerns}\nComments: ${suitability_comments}\nSigned: ${digital_signature}\n`;
+
+    const webhookRes = await fetch("http://localhost:5003/api/webhooks/reference-completed", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": "dev-candidex-api-key"
+      },
+      body: JSON.stringify({
+        candidate_id: candidateId,
+        referee_name: referee.fullName,
+        referee_relationship: referee.relationship,
+        secure_token: token,
+        years_known,
+        rating_reliability,
+        rating_teaching_quality,
+        rating_child_safety,
+        safeguarding_concerns,
+        suitability_comments,
+        digital_signature,
+        transcript
+      })
+    });
+
+    const webhookSucceeded = webhookRes.ok;
+    let driveUrl = null;
+    if (webhookSucceeded) {
+      try {
+        const json = await webhookRes.json();
+        driveUrl = json.driveUrl || null;
+      } catch (e) {
+        console.error("Failed to parse webhook JSON response:", e);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      webhook_succeeded: webhookSucceeded,
+      data: {
+        status: "Completed",
+        reference_doc_url: driveUrl
+      }
+    });
+  } catch (err: any) {
+    console.error("Vetting submission endpoint error:", err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/v1/references", async (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+  if (apiKey !== "dev-candidex-api-key") {
+    return res.status(401).json({ success: false, error: "Unauthorized: Invalid API Key" });
+  }
+
+  try {
+    const mockDbObj = airtableService.getMockDb();
+    const referees = mockDbObj.referees || [];
+    const list = await Promise.all(referees.map(async (ref: any) => {
+      const candidateId = Array.isArray(ref.candidate) ? ref.candidate[0] : ref.candidate;
+      const candidate = await airtableService.getCandidate(candidateId);
+      const responses = await airtableService.getResponsesForReferee(ref.id);
+      const resp = responses[0] || {};
+
+      return {
+        id: ref.id,
+        candidate_id: candidateId,
+        candidate_name: candidate ? candidate.fullName : "Unknown Candidate",
+        referee_name: ref.fullName,
+        referee_email: ref.email,
+        referee_phone: ref.phone,
+        referee_relationship: ref.relationship,
+        crm_source: ref.crmSource || "Candidex",
+        status: ref.formStatus === "Complete" ? "Completed" : "Pending",
+        sent_at: ref.emailSentAt || ref.createdAt || new Date().toISOString(),
+        completed_at: resp.submittedAt || null,
+        rating_reliability: resp.overallRating || 0,
+        rating_teaching_quality: resp.overallRating || 0,
+        rating_child_safety: resp.overallRating || 0,
+        safeguarding_concerns: resp.fraudFlags ? "Yes" : "No",
+        suitability_comments: ref.formStatus === "Complete" ? "Completed evaluation submitted." : "",
+        digital_signature: ref.digitalSignature || "",
+        reference_doc_url: null
+      };
+    }));
+
+    return res.status(200).json({ success: true, data: list });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Express Server Bootstrap
 (async () => {
