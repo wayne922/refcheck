@@ -1,0 +1,29 @@
+---
+name: refcheck-test-and-deploy
+description: Guides build compilation, PDFKit report generation verification, and JWT auth route testing for the Reference Check Portal.
+---
+
+# Reference Check Portal Test and Deploy Skill
+
+Use this skill when modifying the reference portal code, JWT security rules, Airtable queries, or PDF reports template generation.
+
+## 1. Verify Build & Compilation
+Verify that the React frontend client and Express backend compile correctly without errors:
+```bash
+npm run build
+```
+Verify the output files are correctly created in `dist/`.
+
+## 2. PDF Report Compilation Check
+If modifying `pdfkit` report templates (used for compiling reference responses into PDF files):
+1. Test PDF generation endpoint locally or via script to verify that fonts and page heights are rendered without overflows.
+2. Verify that `pdfkit` is correctly imported and utilized inside routes.
+
+## 3. JWT & Airtable API Connection
+*   Verify that Airtable credentials (`AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`) are set in `.env`.
+*   Ensure authentication JWT signatures use the secure `JWT_SECRET` generated during startup.
+*   Verify that user queries match Airtable schema fields under `server/services/airtable.ts`.
+
+## 4. Render Deployment
+*   Ensure changes are pushed to `https://github.com/wayne922/refcheck.git`.
+*   Verify Render app name is `refcheck-app`.

@@ -139,7 +139,7 @@ export function Candidates({ auth }: CandidatesProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [roleAppliedFor, setRoleAppliedFor] = useState("");
-  const [selectedPackage, setSelectedPackage] = useState("Standard 2-Referee");
+  const [selectedPackage, setSelectedPackage] = useState("ECE / Character (2 References)");
 
   // Candidate detail drawer state
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
@@ -158,11 +158,9 @@ export function Candidates({ auth }: CandidatesProps) {
   const [reassignJobTitle, setReassignJobTitle] = useState("");
 
   const packages = [
-    "Standard 2-Referee",
-    "Executive 3-Referee",
-    "Healthcare Premium",
-    "Trades Standard",
-    "Early Childhood / ECE",
+    "ECE / Character (1 Reference)",
+    "ECE / Character (2 References)",
+    "ECE / Character (3 References)",
   ];
 
   const fetchCandidates = async () => {
@@ -871,6 +869,9 @@ export function Candidates({ auth }: CandidatesProps) {
                       <option key={pkg} value={pkg}>{pkg}</option>
                     ))}
                   </select>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                    Allows candidate to provide ECE teaching and/or Character references for 1, 2, or 3 referees.
+                  </p>
                 </div>
 
                 <div className="pt-4">

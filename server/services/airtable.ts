@@ -62,11 +62,18 @@ async function safeUpdate(tableName: string, id: string, fields: any) {
 
 function normalizeTemplateName(name: string): string {
   const mapping: Record<string, string> = {
-    "Standard 2-Referee": "General Professional",
+    "Standard 2-Referee": "Early Childhood / ECE",
     "Executive 3-Referee": "Senior / Executive",
     "Healthcare Premium": "Healthcare",
     "Trades Standard": "Trades / Construction",
-    "Early Childhood / ECE": "Early Childhood / ECE"
+    "ECE / Character (1 Reference)": "Early Childhood / ECE",
+    "ECE / Character (2 References)": "Early Childhood / ECE",
+    "ECE / Character (3 References)": "Early Childhood / ECE",
+    "ECE / Character 1 reference": "Early Childhood / ECE",
+    "ECE / Character 2 references": "Early Childhood / ECE",
+    "ECE / Character 3 references": "Early Childhood / ECE",
+    "Early Childhood / ECE": "Early Childhood / ECE",
+    "Character Reference": "Character Reference"
   };
   return mapping[name] || name;
 }

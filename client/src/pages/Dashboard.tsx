@@ -338,32 +338,32 @@ export function Dashboard({ auth }: DashboardProps) {
           <div className="space-y-4">
             <h3 className="text-lg font-bold font-display text-foreground">Reference Packages</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Standard pre-built industry templates complying with New Zealand and Australian hiring protocols.
+              Tailored ECE education and character reference packages compliant with New Zealand hiring standards.
             </p>
             
             <div className="space-y-3 pt-2">
               <div className="p-4 bg-secondary/50 rounded-2xl flex items-center justify-between border border-border/60">
                 <div>
-                  <h4 className="text-xs font-bold font-display text-foreground">Early Childhood / ECE</h4>
-                  <span className="text-[10px] text-muted-foreground">14 detailed safeguarding metrics</span>
+                  <h4 className="text-xs font-bold font-display text-foreground">ECE Teaching Reference</h4>
+                  <span className="text-[10px] text-muted-foreground">17 detailed teaching & child safety checks</span>
                 </div>
-                <span className="bg-blue-500/10 text-blue-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">NZTC Reg</span>
+                <span className="bg-blue-500/10 text-blue-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">ECE Focus</span>
               </div>
 
               <div className="p-4 bg-secondary/50 rounded-2xl flex items-center justify-between border border-border/60">
                 <div>
-                  <h4 className="text-xs font-bold font-display text-foreground">Clinical Healthcare</h4>
-                  <span className="text-[10px] text-muted-foreground">13 clinical safety checks</span>
+                  <h4 className="text-xs font-bold font-display text-foreground">Character Reference</h4>
+                  <span className="text-[10px] text-muted-foreground">Personal integrity & conduct metrics</span>
                 </div>
-                <span className="bg-blue-500/10 text-blue-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Safety</span>
+                <span className="bg-green-500/10 text-green-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Character</span>
               </div>
 
               <div className="p-4 bg-secondary/50 rounded-2xl flex items-center justify-between border border-border/60">
                 <div>
-                  <h4 className="text-xs font-bold font-display text-foreground">Trades & Construction</h4>
-                  <span className="text-[10px] text-muted-foreground">12 physical site productivity markers</span>
+                  <h4 className="text-xs font-bold font-display text-foreground">1, 2, or 3 Referee Options</h4>
+                  <span className="text-[10px] text-muted-foreground">Flexible referee intake quantity</span>
                 </div>
-                <span className="bg-blue-500/10 text-blue-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Compliant</span>
+                <span className="bg-purple-500/10 text-purple-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase">Flexible</span>
               </div>
             </div>
           </div>

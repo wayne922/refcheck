@@ -507,7 +507,7 @@ app.post("/api/candidates", authMiddleware as any, requireRole(["Admin", "Recrui
       roleAppliedFor,
       employerName: employer.companyName,
       employerId: req.user!.employerId,
-      assignedPackage: assignedPackage || "Standard 2-Referee",
+      assignedPackage: assignedPackage || "ECE / Character (2 References)",
       candidateToken,
       createdBy: req.user!.userId
     });

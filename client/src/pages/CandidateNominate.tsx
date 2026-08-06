@@ -36,6 +36,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
     fullName: string;
     roleAppliedFor: string;
     employerName: string;
+    assignedPackage?: string;
   } | null>(null);
   
   const [loading, setLoading] = useState(true);
@@ -45,10 +46,10 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Default nomination fields for 2 referees (standard requirement)
+  // Default nomination fields
   const [referees, setReferees] = useState<RefereeInput[]>([
     { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
-    { fullName: "", email: "", phone: "", relationship: "Peer", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false }
+    { fullName: "", email: "", phone: "", relationship: "Character Referee", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false }
   ]);
 
   useEffect(() => {
@@ -62,6 +63,21 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
           throw new Error(data.error || "Failed to retrieve invitation details");
         }
         setCandidateInfo(data.candidate);
+
+        if (data.candidate?.assignedPackage) {
+          const pkg = data.candidate.assignedPackage;
+          if (pkg.includes("1")) {
+            setReferees([
+              { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false }
+            ]);
+          } else if (pkg.includes("3")) {
+            setReferees([
+              { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
+              { fullName: "", email: "", phone: "", relationship: "Peer / Senior Teacher", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
+              { fullName: "", email: "", phone: "", relationship: "Character Referee", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false }
+            ]);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Invalid or expired onboarding link.");
       } finally {
@@ -232,7 +248,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold font-display text-foreground">Nominate Your Referees</h2>
               <span className="text-[10px] font-bold text-muted-foreground font-mono bg-secondary px-2.5 py-1 rounded-full">
-                2 Nominees Required
+                {referees.length} Nominee{referees.length > 1 ? "s" : ""} Required
               </span>
             </div>
 
@@ -248,7 +264,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       Reference Questionnaire Type *
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {/* ECE Reference Option */}
                       <button
                         type="button"
@@ -270,7 +286,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                           </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the standard Early Childhood Reference template for education roles.
+                          Sends the standard Early Childhood Reference template focusing on teaching, child safety, and professional performance.
                         </p>
                       </button>
 
@@ -295,32 +311,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
                           </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the new Character Reference template focusing strictly on personal integrity.
-                        </p>
-                      </button>
-
-                      {/* General Reference Option */}
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateReferee(idx, { referenceType: "General Reference", relationship: "Manager" })}
-                        className={`flex flex-col text-left p-4 rounded-2xl border text-xs transition-all relative hover-scale cursor-pointer ${
-                          ref.referenceType === "General Reference"
-                            ? "border-primary bg-primary/5 dark:bg-primary/10 ring-1 ring-primary"
-                            : "border-border bg-card hover:bg-secondary/40"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5 w-full">
-                          <span className="font-bold text-foreground">General Reference</span>
-                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                            ref.referenceType === "General Reference" ? "border-primary bg-primary" : "border-muted-foreground"
-                          }`}>
-                            {ref.referenceType === "General Reference" && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
-                          Sends the new General Reference template with education-specific questions removed.
+                          Sends the Character Reference template focusing on personal integrity, reliability, and character.
                         </p>
                       </button>
                     </div>
