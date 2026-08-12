@@ -1,0 +1,16 @@
+[
+  {
+    "id": "agent-refcheck-fullstack",
+    "customName": "Lead Developer",
+    "role": "fullstack",
+    "provider": "antigravity",
+    "model": ""
+  },
+  {
+    "id": "agent-refcheck-qa",
+    "customName": "QA & Testing Engineer",
+    "role": "qa",
+    "provider": "antigravity",
+    "model": ""
+  }
+]

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROJECT_ID="bamboo-weft-497623-u5"
+PROJECT_ID="agent-os-shared-497623"
 REGION="australia-southeast1"
 SERVICE_NAME="refcheck"
 
