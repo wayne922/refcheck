@@ -622,6 +622,42 @@ app.delete("/api/candidates/:id", authMiddleware as any, requireRole(["Admin", "
   }
 });
 
+// Resend candidate verification link and extend token timeframe (Recruiter Dashboard)
+const handleCandidateExtendOrResend = async (req: AuthenticatedRequest, res: any) => {
+  const { id } = req.params;
+  const days = typeof req.body?.days === "number" ? req.body.days : 7;
+  try {
+    const candidate = await airtableService.getCandidate(id);
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: "Candidate not found" });
+    }
+
+    const tokenExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    await airtableService.updateCandidateFields(id, { tokenExpiresAt });
+
+    const employerId = Array.isArray(candidate.employer) ? candidate.employer[0] : candidate.employer;
+    const employer = employerId ? await airtableService.getEmployer(employerId) : null;
+    const employerName = employer?.companyName || candidate.employerName || "Employer";
+
+    if (candidate.candidateToken) {
+      await emailService.sendCandidateInvite(candidate.fullName, candidate.email, candidate.candidateToken, employerName);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Candidate verification link extended by ${days} days and resent successfully.`,
+      tokenExpiresAt
+    });
+  } catch (err: any) {
+    console.error("Candidate extend route error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+};
+
+app.post("/api/candidates/:id/extend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleCandidateExtendOrResend as any);
+app.post("/api/candidates/:id/resend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleCandidateExtendOrResend as any);
+app.patch("/api/candidates/:id/resend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleCandidateExtendOrResend as any);
+
 // Fetch consolidated candidate vetting report (Sprint 7)
 app.get("/api/candidates/:id/report", authMiddleware as any, async (req: AuthenticatedRequest, res) => {
   const { id } = req.params;
@@ -1725,9 +1761,10 @@ app.post("/api/referees/:id/response", async (req, res) => {
   }
 });
 
-// Resend referee invite and reset nudges (Recruiter Dashboard)
-app.patch("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
+// Resend referee invite, extend token timeframe, and reset nudges (Recruiter Dashboard)
+const handleRefereeResendOrExtend = async (req: AuthenticatedRequest, res: any) => {
   const { id } = req.params;
+  const extendDays = typeof req.body?.days === "number" ? req.body.days : 14;
   try {
     const referee = await airtableService.getReferee(id);
     if (!referee) {
@@ -1740,9 +1777,12 @@ app.patch("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin
       return res.status(404).json({ success: false, error: "Candidate not found" });
     }
 
-    // Reset nudge timestamps and set status to Sent
+    // Reset nudge timestamps, calculate new extended timeframe (tokenExpiresAt), and update status
+    const newTokenExpiresAt = new Date(Date.now() + extendDays * 24 * 60 * 60 * 1000).toISOString();
+
     await airtableService.updateRefereeFields(id, {
-      formStatus: "Sent",
+      formStatus: referee.formStatus === "Complete" ? referee.formStatus : "Sent",
+      tokenExpiresAt: newTokenExpiresAt,
       nudge1SentAt: null,
       nudge2SentAt: null,
       employerAlertedAt: null,
@@ -1750,16 +1790,24 @@ app.patch("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin
       smsSentAt: new Date().toISOString()
     });
 
-    // Re-dispatch dispatches
+    // Re-dispatch invitation email and SMS
     await emailService.sendRefereeInvite(referee.fullName, referee.email, candidate.fullName, candidate.employerName, referee.refereeToken);
     await smsService.sendRefereeInvite(referee.fullName, referee.phone, candidate.fullName, candidate.employerName, referee.refereeToken);
 
-    return res.status(200).json({ success: true, message: "Referee invitation resent successfully." });
+    return res.status(200).json({ 
+      success: true, 
+      message: `Referee invitation resent successfully and link timeframe extended by ${extendDays} days.`,
+      tokenExpiresAt: newTokenExpiresAt 
+    });
   } catch (err: any) {
     console.error("Referee resend route error:", err);
     return res.status(500).json({ success: false, error: err.message || "Server Error" });
   }
-});
+};
+
+app.patch("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleRefereeResendOrExtend as any);
+app.post("/api/referees/:id/extend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleRefereeResendOrExtend as any);
+app.post("/api/referees/:id/resend", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, handleRefereeResendOrExtend as any);
 
 // Delete referee invitation (Recruiter Dashboard)
 app.delete("/api/referees/:id", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {

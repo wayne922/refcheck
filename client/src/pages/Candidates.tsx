@@ -17,7 +17,8 @@ import {
   Copy,
   Check,
   Trash2,
-  Download
+  Download,
+  AlertCircle
 } from "lucide-react";
 import { AuthState } from "../App.tsx";
 import logo from "../assets/logo.png";
@@ -81,6 +82,7 @@ interface Candidate {
   assignedPackage: string;
   createdAt: string;
   candidateToken?: string;
+  tokenExpiresAt?: string;
   createdBy?: string | string[];
 }
 
@@ -101,6 +103,7 @@ interface Referee {
   fraudFlags?: string;
   fraudFlagDetails?: string;
   refereeToken?: string;
+  tokenExpiresAt?: string;
 }
 
 interface CandidatesProps {
@@ -311,24 +314,50 @@ export function Candidates({ auth }: CandidatesProps) {
     }
   };
 
-  const handleResendInvite = async (refereeId: string) => {
+  const handleResendInvite = async (refereeId: string, days = 14) => {
     try {
       const response = await fetch(`/api/referees/${refereeId}/resend`, {
         method: "PATCH",
         headers: {
+          "Content-Type": "application/json",
           "Authorization": `Bearer ${auth.token}`
-        }
+        },
+        body: JSON.stringify({ days })
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Failed to resend invitation");
       }
-      alert("Referee invitation resent successfully!");
+      alert(`Referee invitation resent successfully! The link timeframe has been extended for ${days} days.`);
       if (selectedCandidate) {
         fetchCandidateDetails(selectedCandidate.id);
       }
     } catch (err: any) {
       alert(err.message || "Failed to resend.");
+    }
+  };
+
+  const handleExtendCandidateLink = async (candidateId: string, days = 7) => {
+    try {
+      const response = await fetch(`/api/candidates/${candidateId}/extend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${auth.token}`
+        },
+        body: JSON.stringify({ days })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to extend candidate link");
+      }
+      alert(`Candidate verification link timeframe extended by ${days} days and resent successfully!`);
+      if (selectedCandidate) {
+        fetchCandidateDetails(selectedCandidate.id);
+      }
+      fetchCandidates();
+    } catch (err: any) {
+      alert(err.message || "Failed to extend link.");
     }
   };
 
@@ -980,7 +1009,15 @@ export function Candidates({ auth }: CandidatesProps) {
                 <div className="p-6 space-y-6 animate-fade-in">
                   {/* Candidate Info Card */}
                 <div className="p-5 bg-secondary/30 border border-border rounded-2xl space-y-3">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Candidate Verification Link</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Candidate Verification Link</h4>
+                    {selectedCandidate.candidateToken && selectedCandidate.tokenExpiresAt && new Date() > new Date(selectedCandidate.tokenExpiresAt) && (
+                      <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-500/20">
+                        <Clock className="w-3 h-3" />
+                        Timeframe Expired
+                      </span>
+                    )}
+                  </div>
                   
                   {selectedCandidate.candidateToken ? (
                     <div className="flex items-center gap-2">
@@ -1009,17 +1046,41 @@ export function Candidates({ auth }: CandidatesProps) {
                   )}
 
                   {selectedCandidate.candidateToken && (
-                    <div className="flex justify-between items-center text-[10px] text-muted-foreground pt-1.5">
-                      <span>Candidate self-nomination substitute portal link:</span>
-                      <a 
-                        href={`/c/${selectedCandidate.candidateToken}/substitute`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="text-primary hover:underline font-semibold flex items-center gap-0.5"
-                      >
-                        Substitute Portal
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                    <div className="flex flex-col gap-1.5 text-[10px] text-muted-foreground pt-1.5 border-t border-border/40">
+                      {selectedCandidate.tokenExpiresAt && (
+                        <div className="flex justify-between items-center">
+                          <span>
+                            {new Date() > new Date(selectedCandidate.tokenExpiresAt) ? (
+                              <span className="text-amber-600 font-semibold flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 inline" /> Timeframe expired on {new Date(selectedCandidate.tokenExpiresAt).toLocaleDateString()}
+                              </span>
+                            ) : (
+                              <span>Timeframe active until {new Date(selectedCandidate.tokenExpiresAt).toLocaleDateString()}</span>
+                            )}
+                          </span>
+                          {!isViewer && (
+                            <button
+                              onClick={() => handleExtendCandidateLink(selectedCandidate.id, 7)}
+                              className="text-primary hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Resend & Extend Link (+7 Days)
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-0.5">
+                        <span>Candidate self-nomination substitute portal link:</span>
+                        <a 
+                          href={`/c/${selectedCandidate.candidateToken}/substitute`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-primary hover:underline font-semibold flex items-center gap-0.5"
+                        >
+                          Substitute Portal
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1081,6 +1142,7 @@ export function Candidates({ auth }: CandidatesProps) {
                       {refereesList.map((ref) => {
                         const isOverdue = isRefereeOverdue(ref);
                         const isSubbed = ref.formStatus === "Substituted";
+                        const isExpired = ref.tokenExpiresAt && new Date() > new Date(ref.tokenExpiresAt) && ref.formStatus !== "Complete" && !isSubbed;
                         
                         return (
                           <div key={ref.id} className="p-5 bg-card border border-border rounded-2xl space-y-4 hover:shadow-xs transition-shadow">
@@ -1090,7 +1152,13 @@ export function Candidates({ auth }: CandidatesProps) {
                                 <p className="text-xs text-muted-foreground">{ref.relationship} at {ref.employerName || "Stated Company"}</p>
                               </div>
                               <div className="flex items-center gap-2">
-                                {isOverdue && (
+                                {isExpired && (
+                                  <span className="flex items-center gap-1 bg-amber-500/10 text-amber-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-amber-500/20">
+                                    <Clock className="w-3 h-3" />
+                                    Timeframe Expired
+                                  </span>
+                                )}
+                                {isOverdue && !isExpired && (
                                   <span className="flex items-center gap-1 bg-red-500/10 text-red-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold border border-red-500/20">
                                     <Clock className="w-3 h-3" />
                                     Overdue (Day 6+)
@@ -1107,9 +1175,11 @@ export function Candidates({ auth }: CandidatesProps) {
                                     ? "bg-green-500/10 text-green-600" 
                                     : isSubbed
                                     ? "bg-slate-500/10 text-slate-500"
+                                    : isExpired
+                                    ? "bg-amber-500/10 text-amber-600"
                                     : "bg-blue-500/10 text-blue-600"
                                 }`}>
-                                  {ref.formStatus}
+                                  {isExpired ? "Expired" : ref.formStatus}
                                 </span>
                               </div>
                             </div>
@@ -1210,7 +1280,20 @@ export function Candidates({ auth }: CandidatesProps) {
 
                             {ref.refereeToken && ref.formStatus !== "Complete" && ref.formStatus !== "Substituted" && (
                               <div className="pt-2 border-t border-border/40 mt-1 space-y-1">
-                                <span className="text-[10px] text-muted-foreground block font-semibold">Referee Vetting Portal Link:</span>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-[10px] text-muted-foreground block font-semibold">Referee Vetting Portal Link:</span>
+                                  {ref.tokenExpiresAt && (
+                                    <span className="text-[10px]">
+                                      {isExpired ? (
+                                        <span className="text-amber-600 font-semibold flex items-center gap-1">
+                                          <AlertCircle className="w-3 h-3 inline" /> Timeframe expired on {new Date(ref.tokenExpiresAt).toLocaleDateString()}
+                                        </span>
+                                      ) : (
+                                        <span className="text-muted-foreground">Expires {new Date(ref.tokenExpiresAt).toLocaleDateString()}</span>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-secondary/60 border border-border/80 px-2 py-1.5 rounded-lg text-[10px] font-mono select-all truncate text-primary text-left">
                                     {window.location.origin}/r/{ref.refereeToken}
@@ -1248,10 +1331,15 @@ export function Candidates({ auth }: CandidatesProps) {
                                   <>
                                     <button
                                       onClick={() => handleResendInvite(ref.id)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 border border-border hover:bg-secondary rounded-full text-xs font-semibold text-foreground transition-all cursor-pointer"
+                                      className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                        isExpired 
+                                          ? "border-amber-500/80 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 font-bold"
+                                          : "border-border hover:bg-secondary text-foreground"
+                                      }`}
+                                      title={isExpired ? "Timeframe expired — Click to send link back with extended timeframe (+14 Days)" : "Resend Invite"}
                                     >
                                       <RotateCcw className="w-3.5 h-3.5" />
-                                      Resend Invite
+                                      {isExpired ? "Send Back Link (+14 Days)" : "Resend Invite"}
                                     </button>
                                     <button
                                       onClick={() => handleOpenReassign(ref)}
