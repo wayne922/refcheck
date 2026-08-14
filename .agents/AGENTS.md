@@ -20,3 +20,8 @@ This file contains custom developer rules and architecture guidelines for the Re
 2. **Data Model Updates**: Schema definition changes are applied through Airtable base tables. Update service queries in [airtable.ts](file:///Users/waynesullivan/Documents/antigravity/reference-portal/server/services/airtable.ts) to match schema updates.
 3. **Type Safety**: Strictly adhere to TypeScript. Run `npm run build` or compile with `tsc` to verify code correctness before proposing changes.
 4. **PDF Reports**: Use PDFKit within the Express routes to render reference reports on the fly.
+
+## Obsidian Second Brain Integration
+- **Vault Location**: `/Users/waynesullivan/Library/CloudStorage/GoogleDrive-wayne@candidex.co.nz/My Drive/AI Operating System`
+- **Dynamic Context Routing**: When tasked with writing candidate workflows, emails, or strategy, check the relevant brand files under `Context/` and logs in `Memory/Feedback.md` in the central Obsidian vault.
+- **Operations Logging**: When executing major tasks or syncs, append progress rows to `Compliance/Reference Portal Logs.md` in the Obsidian vault using the layout structure mapped in the parent `.agents/rules/obsidian_layout.md`.
