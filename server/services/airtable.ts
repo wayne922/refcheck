@@ -1,61 +1,156 @@
-import Airtable from "airtable";
 import dotenv from "dotenv";
+import { sql, initRefCheckDb } from "../db";
+import crypto from "crypto";
 
 dotenv.config();
 
-const apiKey = process.env.AIRTABLE_API_KEY || process.env.AIRTABLE_PAT;
-const baseId = process.env.AIRTABLE_BASE_ID;
+let isMock = false;
+console.log(`[Database Service] RefCheck connected to PostgreSQL Cloud SQL backend!`);
+initRefCheckDb().catch(e => console.error("DB init error:", e));
 
-let base: any = null;
-let isMock = true;
-
-if (apiKey && baseId && process.env.MOCK_MODE !== "true") {
-  Airtable.configure({
-    apiKey: apiKey,
-  });
-  base = Airtable.base(baseId);
-  isMock = false;
-  console.log(`[Airtable Service] Connected to live Airtable base: ${baseId}`);
-} else {
-  console.warn(
-    `[Airtable Service Warning] Using in-memory mock database layer instead.`
-  );
+function generateRecordId(prefix = "rec"): string {
+  return `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
 }
 
-async function safeCreate(tableName: string, fields: any) {
-  let writeFields = { ...fields };
-  while (true) {
+function matchesFormula(fields: Record<string, any>, formula: string): boolean {
+  if (!formula) return true;
+  
+  const orMatch = formula.match(/^OR\((.*)\)$/i);
+  if (orMatch) {
+    const subFormulas = orMatch[1].split(/,\s*(?=\{)/);
+    return subFormulas.some(sub => matchesFormula(fields, sub.trim()));
+  }
+
+  const eqMatch = formula.match(/^\{([^}]+)\}\s*=\s*['"]([^'"]*)['"]$/);
+  if (eqMatch) {
+    const [, fieldName, expectedVal] = eqMatch;
+    const actualVal = fields[fieldName];
+    if (actualVal === undefined || actualVal === null) return false;
+    if (Array.isArray(actualVal)) {
+      return actualVal.some(v => String(v).toLowerCase() === expectedVal.toLowerCase());
+    }
+    return String(actualVal).toLowerCase() === expectedVal.toLowerCase();
+  }
+
+  return true;
+}
+
+// Helper to build compatible record object
+function formatPgRecord(id: string, fields: any, createdTime?: any) {
+  let parsedFields = fields;
+  if (typeof fields === "string") {
     try {
-      return await base(tableName).create(writeFields);
-    } catch (err: any) {
-      const match = err.message?.match(/Unknown field name: "([^"]+)"/);
-      if (match && match[1]) {
-        const missingField = match[1];
-        console.warn(`[Airtable Auto-Recovery] Table '${tableName}' missing field '${missingField}'. Stripping and retrying...`);
-        delete writeFields[missingField];
-        continue;
-      }
-      throw err;
+      parsedFields = JSON.parse(fields);
+    } catch {
+      parsedFields = {};
     }
   }
+  parsedFields = parsedFields || {};
+  const time = createdTime ? new Date(createdTime).toISOString() : new Date().toISOString();
+  return {
+    id,
+    fields: parsedFields,
+    _rawJson: { id, fields: parsedFields, createdTime: time },
+    get(field: string) {
+      return parsedFields[field];
+    }
+  };
+}
+
+// Emulate Airtable base interface backed 100% by PostgreSQL
+const pgBase = (tableName: string) => {
+  return {
+    async find(id: string) {
+      if (!id || typeof id !== "string") {
+        throw new Error(`Invalid record ID: "${id}" on table ${tableName}`);
+      }
+      const rows = await sql`
+        SELECT id, fields, created_time FROM refcheck_records 
+        WHERE id = ${id} AND table_name = ${tableName}
+        LIMIT 1;
+      `;
+      if (rows.length === 0) {
+        throw new Error(`Record ${id} not found in ${tableName}`);
+      }
+      return formatPgRecord(rows[0].id, rows[0].fields, rows[0].created_time);
+    },
+
+    select(options: any = {}) {
+      return {
+        async all() {
+          const rows = await sql`
+            SELECT id, fields, created_time FROM refcheck_records 
+            WHERE table_name = ${tableName}
+            ORDER BY created_time ASC;
+          `;
+          
+          let list = rows.map((r: any) => formatPgRecord(r.id, r.fields, r.created_time));
+          if (options.filterByFormula) {
+            list = list.filter((r: any) => matchesFormula(r.fields, options.filterByFormula));
+          }
+          if (options.maxRecords && options.maxRecords > 0) {
+            list = list.slice(0, options.maxRecords);
+          }
+          return list;
+        },
+        async firstPage() {
+          return this.all();
+        }
+      };
+    },
+
+    async create(fieldsOrArray: any) {
+      const isArray = Array.isArray(fieldsOrArray);
+      const items = isArray ? fieldsOrArray : [fieldsOrArray];
+      const created: any[] = [];
+
+      for (const item of items) {
+        const fields = item.fields || item;
+        const id = generateRecordId("rec");
+        await sql`
+          INSERT INTO refcheck_records (id, table_name, fields, updated_time)
+          VALUES (${id}, ${tableName}, ${JSON.stringify(fields)}, NOW())
+          ON CONFLICT (id) DO UPDATE SET fields = EXCLUDED.fields, updated_time = NOW();
+        `;
+        created.push(formatPgRecord(id, fields));
+      }
+
+      return isArray ? created : created[0];
+    },
+
+    async update(id: string, fields: any) {
+      const existing = await sql`
+        SELECT fields, created_time FROM refcheck_records WHERE id = ${id} AND table_name = ${tableName} LIMIT 1;
+      `;
+      const currentFields = existing.length > 0 ? existing[0].fields : {};
+      const createdTime = existing.length > 0 ? existing[0].created_time : new Date();
+      const mergedFields = { ...currentFields, ...fields };
+
+      await sql`
+        UPDATE refcheck_records 
+        SET fields = ${JSON.stringify(mergedFields)}, updated_time = NOW()
+        WHERE id = ${id} AND table_name = ${tableName};
+      `;
+      return formatPgRecord(id, mergedFields, createdTime);
+    },
+
+    async destroy(id: string) {
+      await sql`
+        DELETE FROM refcheck_records WHERE id = ${id} AND table_name = ${tableName};
+      `;
+      return { id, deleted: true };
+    }
+  };
+};
+
+const base = pgBase;
+
+async function safeCreate(tableName: string, fields: any) {
+  return await base(tableName).create(fields);
 }
 
 async function safeUpdate(tableName: string, id: string, fields: any) {
-  let writeFields = { ...fields };
-  while (true) {
-    try {
-      return await base(tableName).update(id, writeFields);
-    } catch (err: any) {
-      const match = err.message?.match(/Unknown field name: "([^"]+)"/);
-      if (match && match[1]) {
-        const missingField = match[1];
-        console.warn(`[Airtable Auto-Recovery] Table '${tableName}' missing field '${missingField}' during update. Stripping and retrying...`);
-        delete writeFields[missingField];
-        continue;
-      }
-      throw err;
-    }
-  }
+  return await base(tableName).update(id, fields);
 }
 
 // Seeded questions helper
@@ -798,6 +893,7 @@ export const airtableService = {
 
   // Employers Table
   getEmployer: async (id: string) => {
+    if (!id) return null;
     if (isMock) {
       return mockDb.employers.find((e: any) => e.id === id) || null;
     }
@@ -806,7 +902,7 @@ export const airtableService = {
       return { id: record.id, createdAt: record._rawJson.createdTime, ...record.fields };
     } catch (err) {
       console.error(`Airtable error fetching employer ${id}:`, err);
-      throw err;
+      return null;
     }
   },
 
@@ -1133,17 +1229,17 @@ export const airtableService = {
   },
 
   // Questionnaire Templates Table (Sprint 2)
-  getQuestionnaireTemplates: async (employerId: string) => {
+  getQuestionnaireTemplates: async (employerId?: string) => {
     if (isMock) {
       return mockDb.questionnaireTemplates.filter(
-        (t: any) => t.Is_System_Template || (t.Created_By && mockDb.users.find((u: any) => u.id === t.Created_By && u.employer.includes(employerId)))
+        (t: any) => t.Is_System_Template || (t.Created_By && mockDb.users.find((u: any) => u.id === t.Created_By && (!employerId || u.employer?.includes(employerId))))
       );
     }
     try {
       await ensureSystemTemplatesSeeded();
 
       // 1. Get employer details to find user records belonging to this employer
-      const employer = await airtableService.getEmployer(employerId);
+      const employer = employerId ? await airtableService.getEmployer(employerId) : null;
       let employerUserIds = new Set<string>();
       if (employer) {
         const userRecords = await base("Users")
@@ -1162,18 +1258,15 @@ export const airtableService = {
       // 3. Filter templates in-memory
       const templates = records.map((r: any) => ({ id: r.id, ...r.fields }));
       return templates.filter((t: any) => {
-        // If it's a system template, keep it
-        if (t.Is_System_Template === true || t.Is_System_Template === 1) {
-          return true;
-        }
-        // If it's a custom template, check if any creator belongs to the employer's users
-        if (Array.isArray(t.Created_By)) {
+        if (t.Is_System_Template) return true;
+        if (!employerId) return true;
+        if (t.Created_By && Array.isArray(t.Created_By)) {
           return t.Created_By.some((uid: string) => employerUserIds.has(uid));
         }
         return false;
       });
     } catch (err) {
-      console.error("Airtable error fetching questionnaire templates:", err);
+      console.error(`Airtable error fetching questionnaire templates:`, err);
       throw err;
     }
   },
