@@ -21,6 +21,11 @@ This file contains custom developer rules and architecture guidelines for the Re
 3. **Type Safety**: Strictly adhere to TypeScript. Run `npm run build` or compile with `tsc` to verify code correctness before proposing changes.
 4. **PDF Reports**: Use PDFKit within the Express routes to render reference reports on the fly.
 
+## Strict Guardrail: Render is Permanently Cut Off
+- **NO RENDER DEPLOYMENTS**: Render has been completely cut off and deprecated. Never deploy to Render, never create or reference `render.yaml`, never use `*.onrender.com` URLs, and never revert any configuration back to Render.
+- **Sole Cloud Target**: Google Cloud Platform (GCP) Cloud Run (`agent-os-shared-497623`, region `australia-southeast1`) and Google Cloud SQL native PostgreSQL (`34.151.99.147`).
+- **GCP Sync Enforcement**: All production builds and deployments must be deployed directly to Google Cloud Run via `./deploy-gcp.sh`.
+
 ## Obsidian Second Brain Integration
 - **Vault Location**: `/Users/waynesullivan/Library/CloudStorage/GoogleDrive-wayne@candidex.co.nz/My Drive/AI Operating System`
 - **Dynamic Context Routing**: When tasked with writing candidate workflows, emails, or strategy, check the relevant brand files under `Context/` and logs in `Memory/Feedback.md` in the central Obsidian vault.

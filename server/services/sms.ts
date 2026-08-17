@@ -5,7 +5,7 @@ dotenv.config();
 const twilioSid = process.env.TWILIO_ACCOUNT_SID;
 const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioFrom = process.env.TWILIO_FROM_NUMBER || "+1234567890";
-const BASE_URL = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:5006";
+const BASE_URL = process.env.APP_URL || "https://refcheck-577231129915.australia-southeast1.run.app";
 
 let isMock = true;
 

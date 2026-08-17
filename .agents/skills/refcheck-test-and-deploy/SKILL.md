@@ -24,6 +24,8 @@ If modifying `pdfkit` report templates (used for compiling reference responses i
 *   Ensure authentication JWT signatures use the secure `JWT_SECRET` generated during startup.
 *   Verify that user queries match Airtable schema fields under `server/services/airtable.ts`.
 
-## 4. Render Deployment
+## 4. GCP Cloud Run Deployment (Render is Cut Off)
+*   **GUARD RAIL**: Render is completely deprecated and cut off. Do NOT deploy to Render or reference Render configs under any circumstances.
+*   Deploy exclusively to Google Cloud Run in project `agent-os-shared-497623` (region `australia-southeast1`) using `./deploy-gcp.sh`.
+*   Verify Cloud Run service name is `refcheck`.
 *   Ensure changes are pushed to `https://github.com/wayne922/refcheck.git`.
-*   Verify Render app name is `refcheck-app`.
