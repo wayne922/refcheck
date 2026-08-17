@@ -100,18 +100,19 @@ export function Login({ onLogin }: LoginProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !companyName) {
-      setError("Please fill in all fields");
+    if (!email) {
+      setError("Please enter your email address");
       return;
     }
-    performLogin({ email, companyName });
+    const defaultCompany = email.includes("@candidex.co.nz") ? "Candidex Recruitment" : companyName || "Candidex Recruitment";
+    performLogin({ email, companyName: defaultCompany });
   };
 
-  const handleGoogleSimulate = () => {
+  const handleQuickLogin = (userEmail: string, userName: string) => {
     performLogin({
-      email: "wayne@refcheck.tech",
-      companyName: "RefCheck Recruitment",
-      fullName: "Wayne Sullivan"
+      email: userEmail,
+      companyName: "Candidex Recruitment",
+      fullName: userName
     });
   };
 
@@ -143,34 +144,44 @@ export function Login({ onLogin }: LoginProps) {
             {loading && <p className="text-xs text-muted-foreground mt-2 animate-pulse">Authenticating with Google...</p>}
           </div>
         ) : (
-          <button
-            onClick={handleGoogleSimulate}
-            disabled={loading}
-            className="flex items-center justify-center gap-3 w-full py-3 border border-border bg-card rounded-xl text-sm font-semibold hover:bg-secondary transition-all mb-6 shadow-sm cursor-pointer disabled:opacity-50"
-          >
-            <Chrome className="w-5 h-5 text-primary" />
-            {loading ? "Authenticating..." : "Sign in with Google (Dev Mode)"}
-          </button>
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={() => handleQuickLogin("jenna@candidex.co.nz", "Jenna Robinson")}
+              disabled={loading}
+              className="flex items-center justify-center gap-3 w-full py-3 border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-xl text-sm font-semibold text-primary transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Chrome className="w-5 h-5 text-primary" />
+              {loading ? "Authenticating..." : "Sign in as Jenna Robinson"}
+            </button>
+            <button
+              onClick={() => handleQuickLogin("wayne@candidex.co.nz", "Wayne Sullivan")}
+              disabled={loading}
+              className="flex items-center justify-center gap-3 w-full py-3 border border-border bg-card hover:bg-secondary rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            >
+              <Chrome className="w-5 h-5 text-primary" />
+              {loading ? "Authenticating..." : "Sign in as Wayne Sullivan"}
+            </button>
+          </div>
         )}
 
         {!googleClientId && (
           <>
             <div className="relative flex py-3 items-center mb-6">
               <div className="flex-grow border-t border-border"></div>
-              <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Developer Log In</span>
+              <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Sign In by Email</span>
               <div className="flex-grow border-t border-border"></div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Company Name
+                  Email Address
                 </label>
                 <input
-                  type="text"
-                  placeholder="e.g. Acme Agency"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                  type="email"
+                  placeholder="e.g. jenna@candidex.co.nz"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                 />
@@ -178,13 +189,13 @@ export function Login({ onLogin }: LoginProps) {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Email Address
+                  Company Name (Optional for Candidex)
                 </label>
                 <input
-                  type="email"
-                  placeholder="e.g. recruiter@company.co.nz"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Candidex Recruitment"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
                   disabled={loading}
                   className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                 />
@@ -195,7 +206,7 @@ export function Login({ onLogin }: LoginProps) {
                 disabled={loading}
                 className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90 shadow-md shadow-primary/10 transition-all cursor-pointer disabled:opacity-50"
               >
-                {loading ? "Creating Recruiter Account..." : "Create Recruiter Account"}
+                {loading ? "Signing in..." : "Continue to Workspace"}
               </button>
             </form>
           </>
