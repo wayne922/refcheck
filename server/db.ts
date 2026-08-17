@@ -3,7 +3,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
+const DEFAULT_DATABASE_URL = "postgresql://postgres:C%40ndidex%21978@34.151.99.147:5432/postgres?sslmode=disable";
+const connectionString = process.env.DATABASE_URL || DEFAULT_DATABASE_URL;
 
 export const sql = postgres(connectionString, {
   max: 10,

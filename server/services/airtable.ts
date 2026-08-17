@@ -1071,19 +1071,14 @@ export const airtableService = {
       return mockDb.candidates.filter((c: any) => c.employer && c.employer.includes(employerId));
     }
     try {
-      const selectOptions: any = {};
-      if (employerId) {
-        const employer = await airtableService.getEmployer(employerId);
-        if (employer) {
-          selectOptions.filterByFormula = `{employer} = '${employer.companyName}'`;
-        } else {
-          return [];
-        }
-      }
-      const records = await base("Candidates").select(selectOptions).all();
+      const records = await base("Candidates").select().all();
       const mapped = records.map((r: any) => ({ id: r.id, createdAt: r._rawJson.createdTime || new Date().toISOString(), ...r.fields }));
       if (employerId) {
-        return mapped.filter((c: any) => c.employer && c.employer.includes(employerId));
+        return mapped.filter((c: any) => {
+          if (!c.employer) return false;
+          if (Array.isArray(c.employer)) return c.employer.includes(employerId);
+          return c.employer === employerId;
+        });
       }
       return mapped;
     } catch (err) {
@@ -1238,16 +1233,18 @@ export const airtableService = {
     try {
       await ensureSystemTemplatesSeeded();
 
-      // 1. Get employer details to find user records belonging to this employer
-      const employer = employerId ? await airtableService.getEmployer(employerId) : null;
       let employerUserIds = new Set<string>();
-      if (employer) {
-        const userRecords = await base("Users")
-          .select({
-            filterByFormula: `{employer} = '${employer.companyName}'`
-          })
-          .all();
-        employerUserIds = new Set(userRecords.map((r: any) => r.id));
+      if (employerId) {
+        const userRecords = await base("Users").select().all();
+        employerUserIds = new Set(
+          userRecords
+            .filter((u: any) => {
+              const emp = u.fields.employer;
+              if (Array.isArray(emp)) return emp.includes(employerId);
+              return emp === employerId;
+            })
+            .map((r: any) => r.id)
+        );
       }
 
       // 2. Fetch all questionnaire templates
@@ -1508,19 +1505,17 @@ export const airtableService = {
 
   getRefereesForCandidate: async (candidateId: string) => {
     if (isMock) {
-      return mockDb.referees.filter((r: any) => r.candidate.includes(candidateId));
+      return mockDb.referees.filter((r: any) => r.candidate && r.candidate.includes(candidateId));
     }
     try {
-      const candidate = await airtableService.getCandidate(candidateId);
-      if (!candidate) return [];
-      
-      const records = await base("Referees")
-        .select({
-          filterByFormula: `{candidate} = '${candidate.fullName}'`
-        })
-        .all();
-      const mapped = records.map((r: any) => ({ id: r.id, ...r.fields }));
-      return mapped.filter((r: any) => r.candidate && r.candidate.includes(candidateId));
+      const records = await base("Referees").select().all();
+      return records
+        .map((r: any) => ({ id: r.id, ...r.fields }))
+        .filter((r: any) => {
+          if (!r.candidate) return false;
+          if (Array.isArray(r.candidate)) return r.candidate.includes(candidateId);
+          return r.candidate === candidateId;
+        });
     } catch (err) {
       console.error(`Airtable error fetching candidate referees for ${candidateId}:`, err);
       throw err;
@@ -1608,19 +1603,17 @@ export const airtableService = {
 
   getResponsesForReferee: async (refereeId: string) => {
     if (isMock) {
-      return mockDb.refereeResponses.filter((r: any) => r.referee.includes(refereeId));
+      return mockDb.refereeResponses.filter((r: any) => r.referee && r.referee.includes(refereeId));
     }
     try {
-      const referee = await airtableService.getReferee(refereeId);
-      if (!referee) return [];
-      
-      const records = await base("Referee_Responses")
-        .select({
-          filterByFormula: `{referee} = '${referee.fullName}'`
-        })
-        .all();
-      const mapped = records.map((r: any) => ({ id: r.id, ...r.fields }));
-      return mapped.filter((r: any) => r.referee && r.referee.includes(refereeId));
+      const records = await base("Referee_Responses").select().all();
+      return records
+        .map((r: any) => ({ id: r.id, ...r.fields }))
+        .filter((r: any) => {
+          if (!r.referee) return false;
+          if (Array.isArray(r.referee)) return r.referee.includes(refereeId);
+          return r.referee === refereeId;
+        });
     } catch (err) {
       console.error(`Airtable error fetching responses for referee ${refereeId}:`, err);
       throw err;
