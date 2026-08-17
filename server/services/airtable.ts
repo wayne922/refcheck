@@ -38,11 +38,11 @@ function matchesFormula(fields: Record<string, any>, formula: string): boolean {
 // Helper to build compatible record object
 function formatPgRecord(id: string, fields: any, createdTime?: any) {
   let parsedFields = fields;
-  if (typeof fields === "string") {
+  while (typeof parsedFields === "string") {
     try {
-      parsedFields = JSON.parse(fields);
+      parsedFields = JSON.parse(parsedFields);
     } catch {
-      parsedFields = {};
+      break;
     }
   }
   parsedFields = parsedFields || {};
