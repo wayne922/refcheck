@@ -105,7 +105,15 @@ const pgBase = (tableName: string) => {
       const created: any[] = [];
 
       for (const item of items) {
-        const fields = item.fields || item;
+        let fields = item.fields || item;
+        while (typeof fields === "string") {
+          try {
+            fields = JSON.parse(fields);
+          } catch {
+            break;
+          }
+        }
+        fields = fields || {};
         const id = generateRecordId("rec");
         await sql`
           INSERT INTO refcheck_records (id, table_name, fields, updated_time)
@@ -122,9 +130,28 @@ const pgBase = (tableName: string) => {
       const existing = await sql`
         SELECT fields, created_time FROM refcheck_records WHERE id = ${id} AND table_name = ${tableName} LIMIT 1;
       `;
-      const currentFields = existing.length > 0 ? existing[0].fields : {};
+      let currentFields = existing.length > 0 ? existing[0].fields : {};
+      while (typeof currentFields === "string") {
+        try {
+          currentFields = JSON.parse(currentFields);
+        } catch {
+          break;
+        }
+      }
+      currentFields = currentFields || {};
+
+      let updateFields = fields;
+      while (typeof updateFields === "string") {
+        try {
+          updateFields = JSON.parse(updateFields);
+        } catch {
+          break;
+        }
+      }
+      updateFields = updateFields || {};
+
       const createdTime = existing.length > 0 ? existing[0].created_time : new Date();
-      const mergedFields = { ...currentFields, ...fields };
+      const mergedFields = { ...currentFields, ...updateFields };
 
       await sql`
         UPDATE refcheck_records 
