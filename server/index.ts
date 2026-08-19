@@ -1602,6 +1602,9 @@ app.get("/api/referees/by-token/:token", async (req, res) => {
       return res.status(404).json({ success: false, error: "Assigned questionnaire template not found" });
     }
 
+    const questions = typeof template.Questions_JSON === "string" ? JSON.parse(template.Questions_JSON) : (template.Questions_JSON || []);
+    const branchingRules = typeof template.Branching_Rules_JSON === "string" ? JSON.parse(template.Branching_Rules_JSON) : (template.Branching_Rules_JSON || []);
+
     return res.status(200).json({
       success: true,
       referee: {
@@ -1617,11 +1620,12 @@ app.get("/api/referees/by-token/:token", async (req, res) => {
         roleAppliedFor: candidate.roleAppliedFor,
         employerName: candidate.employerName
       },
-      questions: JSON.parse(template.Questions_JSON),
-      branchingRules: JSON.parse(template.Branching_Rules_JSON || "[]")
+      questions,
+      branchingRules
     });
   } catch (err: any) {
-    return res.status(403).json({ success: false, error: "Link expired or invalid" });
+    console.error(`[Referee Token Error] token: ${token}:`, err);
+    return res.status(403).json({ success: false, error: err.message || "Link expired or invalid" });
   }
 });
 

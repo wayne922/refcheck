@@ -1426,23 +1426,25 @@ export const airtableService = {
     phone: string;
     relationship: string;
     employerName: string;
-    jobTitle: string;
-    datesFrom: string;
-    datesTo: string;
-    candidateId: string;
+    jobTitle?: string;
+    datesFrom?: string;
+    datesTo?: string;
+    candidateId?: string;
+    candidate?: string | string[];
     refereeToken: string;
     referenceType?: string;
   }) => {
+    const candidateId = data.candidateId || (Array.isArray(data.candidate) ? data.candidate[0] : data.candidate);
     const fields: any = {
       fullName: data.fullName,
       email: data.email,
       phone: data.phone,
       relationship: data.relationship,
       employerName: data.employerName,
-      jobTitle: data.jobTitle,
-      datesFrom: data.datesFrom,
+      jobTitle: data.jobTitle || "",
+      datesFrom: data.datesFrom || "",
       datesTo: data.datesTo || "",
-      candidate: [data.candidateId],
+      candidate: candidateId ? [candidateId] : [],
       refereeToken: data.refereeToken,
       tokenExpiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       formStatus: "Not Sent",
