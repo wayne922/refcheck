@@ -19,10 +19,10 @@ If modifying `pdfkit` report templates (used for compiling reference responses i
 1. Test PDF generation endpoint locally or via script to verify that fonts and page heights are rendered without overflows.
 2. Verify that `pdfkit` is correctly imported and utilized inside routes.
 
-## 3. JWT & Airtable API Connection
-*   Verify that Airtable credentials (`AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`) are set in `.env`.
+## 3. JWT & Google Cloud SQL Database Connection
+*   Verify that Cloud SQL PostgreSQL credentials (`DATABASE_URL`) are configured in `.env` pointing to `34.151.99.147`.
 *   Ensure authentication JWT signatures use the secure `JWT_SECRET` generated during startup.
-*   Verify that user queries match Airtable schema fields under `server/services/airtable.ts`.
+*   Verify that user and candidate queries operate via `server/services/dbService.ts`.
 
 ## 4. GCP Cloud Run Deployment (Render is Cut Off)
 *   **GUARD RAIL**: Render is completely deprecated and cut off. Do NOT deploy to Render or reference Render configs under any circumstances.

@@ -5,7 +5,7 @@ import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import crypto from "crypto";
-import { airtableService } from "./services/airtable.ts";
+import { dbService, dbService as airtableService } from "./services/dbService.ts";
 import { serveStatic } from "./static.ts";
 import { emailService, emailLogs } from "./services/email.ts";
 import { smsService } from "./services/sms.ts";
