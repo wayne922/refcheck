@@ -8,6 +8,17 @@ let isMock = false;
 console.log(`[Database Service] RefCheck connected to PostgreSQL Cloud SQL backend!`);
 initRefCheckDb().catch(e => console.error("DB init error:", e));
 
+const BASE58_ALPHABET = "23456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+
+export function generateShortToken(length = 8): string {
+  const bytes = crypto.randomBytes(length);
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += BASE58_ALPHABET[bytes[i] % BASE58_ALPHABET.length];
+  }
+  return result;
+}
+
 function generateRecordId(prefix = "rec"): string {
   return `${prefix}_${crypto.randomBytes(8).toString("hex")}`;
 }

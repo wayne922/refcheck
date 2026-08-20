@@ -167,11 +167,11 @@ export function Candidates({ auth }: CandidatesProps) {
   const getBaseUrl = () => {
     if (typeof window !== "undefined") {
       const origin = window.location.origin;
-      if (!origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+      if (!origin.includes("localhost") && !origin.includes("127.0.0.1") && !origin.includes(".run.app")) {
         return origin;
       }
     }
-    return "https://refcheck-bx6vloyj4a-ts.a.run.app";
+    return "https://vetting.candidex.co.nz";
   };
 
   // Phone Interview Modal state

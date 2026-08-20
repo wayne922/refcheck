@@ -4,8 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import crypto from "crypto";
-import { dbService, dbService as airtableService } from "./services/dbService.ts";
+import { dbService, dbService as airtableService, generateShortToken } from "./services/dbService.ts";
 import { serveStatic } from "./static.ts";
 import { emailService, emailLogs } from "./services/email.ts";
 import { smsService } from "./services/sms.ts";
@@ -118,7 +117,7 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/config", (_req, res) => {
   res.status(200).json({
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
-    appUrl: process.env.APP_URL || "https://refcheck-bx6vloyj4a-ts.a.run.app"
+    appUrl: process.env.APP_URL || "https://vetting.candidex.co.nz"
   });
 });
 
@@ -499,7 +498,7 @@ app.post("/api/candidates", authMiddleware as any, requireRole(["Admin", "Recrui
   try {
     const employer = await airtableService.getEmployer(req.user!.employerId);
     
-    const candidateToken = crypto.randomBytes(8).toString("hex");
+    const candidateToken = generateShortToken(8);
 
     const candidate = await airtableService.createCandidate({
       fullName,
@@ -1454,7 +1453,7 @@ app.post("/api/candidates/:id/referees", async (req, res) => {
           refereeRecord.formStatus = "Sent";
         }
       } else {
-        const refereeToken = crypto.randomBytes(8).toString("hex");
+        const refereeToken = generateShortToken(8);
 
         refereeRecord = await airtableService.createReferee({
           fullName: ref.fullName,
@@ -1524,7 +1523,7 @@ app.post("/api/candidates/:id/substitute", async (req, res) => {
     }
 
     // Generate refereeToken
-    const refereeToken = crypto.randomBytes(8).toString("hex");
+    const refereeToken = generateShortToken(8);
 
     // Retrieve original referee's referenceType to carry it over
     let referenceType = "Early Childhood / ECE";
@@ -1877,7 +1876,7 @@ app.patch("/api/referees/:id/reassign", authMiddleware as any, requireRole(["Adm
       formStatus: "Substituted"
     });
 
-    const refereeToken = crypto.randomBytes(8).toString("hex");
+    const refereeToken = generateShortToken(8);
 
     // Create new referee
     const newReferee = await airtableService.createReferee({
@@ -2461,7 +2460,7 @@ app.post("/api/v1/references/request", async (req, res) => {
     }
 
     // 2. Create Referee record
-    const refereeToken = crypto.randomBytes(16).toString("hex");
+    const refereeToken = generateShortToken(8);
     const referee = await airtableService.createReferee({
       fullName: referee_name,
       email: referee_email,
