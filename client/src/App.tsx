@@ -63,6 +63,16 @@ export function App() {
           </Route>
           
           {/* Public Link-Based Token Routes */}
+          <Route path="/c/:token/substitute">
+            {({ token }) => <CandidateSubstitute token={token} />}
+          </Route>
+          <Route path="/candidate/:token/substitute">
+            {({ token }) => <CandidateSubstitute token={token} />}
+          </Route>
+          <Route path="/nominate/:token/substitute">
+            {({ token }) => <CandidateSubstitute token={token} />}
+          </Route>
+
           <Route path="/c/:token">
             {({ token }) => <CandidateNominate token={token} />}
           </Route>
@@ -71,13 +81,6 @@ export function App() {
           </Route>
           <Route path="/nominate/:token">
             {({ token }) => <CandidateNominate token={token} />}
-          </Route>
-          
-          <Route path="/c/:token/substitute">
-            {({ token }) => <CandidateSubstitute token={token} />}
-          </Route>
-          <Route path="/candidate/:token/substitute">
-            {({ token }) => <CandidateSubstitute token={token} />}
           </Route>
           
           <Route path="/r/:token">

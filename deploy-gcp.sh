@@ -25,7 +25,7 @@ CLOUDSDK_METRICS_ENVIRONMENT=datacloud.antigravity gcloud run deploy $SERVICE_NA
   --min-instances 1 \
   --max-instances 2 \
   --memory 512Mi \
-  --set-env-vars "NODE_ENV=production,DATABASE_URL=${DATABASE_URL},JWT_SECRET=${JWT_SECRET:-default_refcheck_secret_key_123456},SENDGRID_API_KEY=${SENDGRID_API_KEY},SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL},GEMINI_API_KEY=${GEMINI_API_KEY},APP_URL=${APP_URL:-https://refcheck-bx6vloyj4a-ts.a.run.app}" \
+  --set-env-vars "NODE_ENV=production,DATABASE_URL=${DATABASE_URL},JWT_SECRET=${JWT_SECRET:-default_refcheck_secret_key_123456},SENDGRID_API_KEY=${SENDGRID_API_KEY},SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL},GEMINI_API_KEY=${GEMINI_API_KEY},APP_URL=${APP_URL:-https://refcheck-577231129915.australia-southeast1.run.app}" \
   --quiet
 
 echo "✅ GCP Cloud Run deployment complete!"

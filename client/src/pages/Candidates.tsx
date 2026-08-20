@@ -171,7 +171,7 @@ export function Candidates({ auth }: CandidatesProps) {
         return origin;
       }
     }
-    return "https://refcheck-bx6vloyj4a-ts.a.run.app";
+    return "https://refcheck-577231129915.australia-southeast1.run.app";
   };
 
   // Phone Interview Modal state
