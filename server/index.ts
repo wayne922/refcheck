@@ -118,7 +118,7 @@ app.get("/api/health", (_req, res) => {
 app.get("/api/config", (_req, res) => {
   res.status(200).json({
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
-    appUrl: process.env.APP_URL || "https://refcheck.tech"
+    appUrl: process.env.APP_URL || "https://refcheck-bx6vloyj4a-ts.a.run.app"
   });
 });
 

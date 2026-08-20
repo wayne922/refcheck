@@ -167,11 +167,11 @@ export function Candidates({ auth }: CandidatesProps) {
   const getBaseUrl = () => {
     if (typeof window !== "undefined") {
       const origin = window.location.origin;
-      if (!origin.includes("localhost") && !origin.includes("127.0.0.1") && !origin.includes(".run.app")) {
+      if (!origin.includes("localhost") && !origin.includes("127.0.0.1")) {
         return origin;
       }
     }
-    return "https://refcheck.tech";
+    return "https://refcheck-bx6vloyj4a-ts.a.run.app";
   };
 
   // Phone Interview Modal state
