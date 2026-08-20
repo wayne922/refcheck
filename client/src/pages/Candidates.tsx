@@ -162,6 +162,17 @@ export function Candidates({ auth }: CandidatesProps) {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedRefereeToken, setCopiedRefereeToken] = useState<string | null>(null);
+
+  const getBaseUrl = () => {
+    if (typeof window !== "undefined") {
+      const origin = window.location.origin;
+      if (!origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+        return origin;
+      }
+    }
+    return "https://refcheck-bx6vloyj4a-ts.a.run.app";
+  };
 
   // Phone Interview Modal state
   const [phoneInterviewReferee, setPhoneInterviewReferee] = useState<Referee | null>(null);
@@ -209,7 +220,7 @@ export function Candidates({ auth }: CandidatesProps) {
       if (!response.ok || !data.success) {
         throw new Error(data.error || "Failed to load candidates");
       }
-      setCandidates(data.candidates);
+      setCandidates(data.candidates || []);
       setTotal(data.total || 0);
     } catch (err: any) {
       setError(err.message || "Could not retrieve records.");
@@ -240,7 +251,7 @@ export function Candidates({ auth }: CandidatesProps) {
   const handleDownloadPdf = async (candidateId: string, refereeId?: string, refereeName?: string) => {
     setDownloadingPdf(true);
     try {
-      const response = await fetch(`/api/reports/${candidateId}/export`, {
+      const res = await fetch(`/api/reports/${candidateId}/export`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -248,22 +259,25 @@ export function Candidates({ auth }: CandidatesProps) {
         },
         body: JSON.stringify({ refereeId })
       });
-      if (!response.ok) throw new Error("Failed to export PDF");
-      const blob = await response.blob();
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to generate PDF report");
+      }
+
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const downloadName = refereeName
-        ? `Reference-Report-${refereeName.replace(/\s+/g, "-")}.pdf`
-        : `Vetting-Report-${selectedCandidate?.fullName.replace(/\s+/g, "-")}.pdf`;
-      a.download = downloadName;
+      a.download = refereeName 
+        ? `Reference-Report-${refereeName.replace(/\s+/g, "-")}.pdf` 
+        : `Vetting-Report-${selectedCandidate?.fullName.replace(/\s+/g, "-") || "Candidate"}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("PDF download failed:", e);
-      alert("Failed to export PDF report. Please try again.");
+    } catch (err: any) {
+      alert(err.message || "Failed to download PDF report.");
     } finally {
       setDownloadingPdf(false);
     }
@@ -473,10 +487,17 @@ export function Candidates({ auth }: CandidatesProps) {
   };
 
   const copyCandidateLink = (token: string) => {
-    const link = `${window.location.origin}/c/${token}`;
+    const link = `${getBaseUrl()}/c/${token}`;
     navigator.clipboard.writeText(link);
     setCopiedToken(true);
     setTimeout(() => setCopiedToken(false), 2000);
+  };
+
+  const copyRefereeLink = (token: string) => {
+    const link = `${getBaseUrl()}/r/${token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedRefereeToken(token);
+    setTimeout(() => setCopiedRefereeToken(null), 2000);
   };
 
   const isRefereeOverdue = (ref: Referee) => {
@@ -1041,7 +1062,7 @@ export function Candidates({ auth }: CandidatesProps) {
                   {selectedCandidate.candidateToken ? (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-card border border-border px-3 py-2 rounded-xl text-xs font-mono select-all truncate text-primary">
-                        {window.location.origin}/c/{selectedCandidate.candidateToken}
+                        {getBaseUrl()}/c/{selectedCandidate.candidateToken}
                       </div>
                       <button
                         onClick={() => copyCandidateLink(selectedCandidate.candidateToken!)}
@@ -1315,8 +1336,20 @@ export function Candidates({ auth }: CandidatesProps) {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-secondary/60 border border-border/80 px-2 py-1.5 rounded-lg text-[10px] font-mono select-all truncate text-primary text-left">
-                                    {window.location.origin}/r/{ref.refereeToken}
+                                    {getBaseUrl()}/r/{ref.refereeToken}
                                   </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => copyRefereeLink(ref.refereeToken!)}
+                                    className="p-1.5 border border-border hover:bg-secondary rounded-xl text-muted-foreground hover:text-foreground transition-all cursor-pointer"
+                                    title="Copy Referee Link"
+                                  >
+                                    {copiedRefereeToken === ref.refereeToken ? (
+                                      <Check className="w-3.5 h-3.5 text-green-600" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
                                   <a 
                                     href={`/r/${ref.refereeToken}`} 
                                     target="_blank" 

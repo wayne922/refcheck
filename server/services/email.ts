@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const sendgridKey = process.env.SENDGRID_API_KEY;
-const BASE_URL = process.env.APP_URL || "https://refcheck-577231129915.australia-southeast1.run.app";
+const BASE_URL = process.env.APP_URL || "https://refcheck-bx6vloyj4a-ts.a.run.app";
 let isMock = true;
 
 if (sendgridKey && process.env.MOCK_MODE !== "true") {
