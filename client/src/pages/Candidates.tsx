@@ -167,11 +167,11 @@ export function Candidates({ auth }: CandidatesProps) {
   const getBaseUrl = () => {
     if (typeof window !== "undefined") {
       const origin = window.location.origin;
-      if (!origin.includes("localhost") && !origin.includes("127.0.0.1")) {
+      if (!origin.includes("localhost") && !origin.includes("127.0.0.1") && !origin.includes(".run.app")) {
         return origin;
       }
     }
-    return "https://refcheck-bx6vloyj4a-ts.a.run.app";
+    return "https://refcheck.tech";
   };
 
   // Phone Interview Modal state
@@ -487,14 +487,14 @@ export function Candidates({ auth }: CandidatesProps) {
   };
 
   const copyCandidateLink = (token: string) => {
-    const link = `${getBaseUrl()}/c/${token}`;
+    const link = `${getBaseUrl()}/nominate/${token}`;
     navigator.clipboard.writeText(link);
     setCopiedToken(true);
     setTimeout(() => setCopiedToken(false), 2000);
   };
 
   const copyRefereeLink = (token: string) => {
-    const link = `${getBaseUrl()}/r/${token}`;
+    const link = `${getBaseUrl()}/verify/${token}`;
     navigator.clipboard.writeText(link);
     setCopiedRefereeToken(token);
     setTimeout(() => setCopiedRefereeToken(null), 2000);
@@ -1062,7 +1062,7 @@ export function Candidates({ auth }: CandidatesProps) {
                   {selectedCandidate.candidateToken ? (
                     <div className="flex items-center gap-2">
                       <div className="flex-1 bg-card border border-border px-3 py-2 rounded-xl text-xs font-mono select-all truncate text-primary">
-                        {getBaseUrl()}/c/{selectedCandidate.candidateToken}
+                        {getBaseUrl()}/nominate/{selectedCandidate.candidateToken}
                       </div>
                       <button
                         onClick={() => copyCandidateLink(selectedCandidate.candidateToken!)}
@@ -1072,7 +1072,7 @@ export function Candidates({ auth }: CandidatesProps) {
                         {copiedToken ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                       </button>
                       <a 
-                        href={`/c/${selectedCandidate.candidateToken}`} 
+                        href={`/nominate/${selectedCandidate.candidateToken}`} 
                         target="_blank" 
                         rel="noreferrer"
                         className="p-2 border border-border hover:bg-secondary rounded-xl text-muted-foreground hover:text-foreground transition-all"
@@ -1336,7 +1336,7 @@ export function Candidates({ auth }: CandidatesProps) {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 bg-secondary/60 border border-border/80 px-2 py-1.5 rounded-lg text-[10px] font-mono select-all truncate text-primary text-left">
-                                    {getBaseUrl()}/r/{ref.refereeToken}
+                                    {getBaseUrl()}/verify/{ref.refereeToken}
                                   </div>
                                   <button
                                     type="button"
@@ -1351,7 +1351,7 @@ export function Candidates({ auth }: CandidatesProps) {
                                     )}
                                   </button>
                                   <a 
-                                    href={`/r/${ref.refereeToken}`} 
+                                    href={`/verify/${ref.refereeToken}`} 
                                     target="_blank" 
                                     rel="noreferrer"
                                     className="p-1.5 border border-border hover:bg-secondary rounded-xl text-muted-foreground hover:text-foreground transition-all"

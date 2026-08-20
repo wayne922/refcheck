@@ -5,7 +5,7 @@ dotenv.config();
 const twilioSid = process.env.TWILIO_ACCOUNT_SID;
 const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioFrom = process.env.TWILIO_FROM_NUMBER || "+1234567890";
-const BASE_URL = process.env.APP_URL || "https://refcheck-bx6vloyj4a-ts.a.run.app";
+const BASE_URL = process.env.APP_URL || "https://refcheck.tech";
 
 let isMock = true;
 
@@ -61,13 +61,13 @@ export const smsService = {
   },
 
   sendRefereeInvite: async (refereeName: string, refereePhone: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `${BASE_URL}/r/${token}`;
+    const inviteUrl = `${BASE_URL}/verify/${token}`;
     const message = `Hi ${refereeName}, ${candidateName} has nominated you as a referee for their application with ${employerName}. Complete the questionnaire: ${inviteUrl}`;
     return smsService.sendSms(refereePhone, message);
   },
 
   sendRefereeNudge1: async (refereeName: string, refereePhone: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `${BASE_URL}/r/${token}`;
+    const inviteUrl = `${BASE_URL}/verify/${token}`;
     const message = `Hi ${refereeName}, friendly reminder to complete the reference check for ${candidateName} at ${employerName}: ${inviteUrl}`;
     return smsService.sendSms(refereePhone, message);
   }

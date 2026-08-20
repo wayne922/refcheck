@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const sendgridKey = process.env.SENDGRID_API_KEY;
-const BASE_URL = process.env.APP_URL || "https://refcheck-bx6vloyj4a-ts.a.run.app";
+const BASE_URL = process.env.APP_URL || "https://refcheck.tech";
 let isMock = true;
 
 if (sendgridKey && process.env.MOCK_MODE !== "true") {
@@ -100,7 +100,7 @@ export const emailService = {
   },
 
   sendCandidateInvite: async (candidateName: string, candidateEmail: string, token: string, employerName: string) => {
-    const inviteUrl = `${BASE_URL}/c/${token}`;
+    const inviteUrl = `${BASE_URL}/nominate/${token}`;
     return emailService.sendEmail({
       to: candidateEmail,
       subject: `Reference Check Invitation for ${candidateName}`,
@@ -114,7 +114,7 @@ export const emailService = {
   },
 
   sendRefereeInvite: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `${BASE_URL}/r/${token}`;
+    const inviteUrl = `${BASE_URL}/verify/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Reference request for ${candidateName} - ${employerName}`,
@@ -137,7 +137,7 @@ export const emailService = {
   },
 
   sendRefereeNudge1: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `${BASE_URL}/r/${token}`;
+    const inviteUrl = `${BASE_URL}/verify/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Reminder: Reference request for ${candidateName} - ${employerName}`,
@@ -147,7 +147,7 @@ export const emailService = {
   },
 
   sendRefereeNudge2: async (refereeName: string, refereeEmail: string, candidateName: string, employerName: string, token: string) => {
-    const inviteUrl = `${BASE_URL}/r/${token}`;
+    const inviteUrl = `${BASE_URL}/verify/${token}`;
     return emailService.sendEmail({
       to: refereeEmail,
       subject: `Action Required: Reference request for ${candidateName} - ${employerName}`,
