@@ -66,12 +66,30 @@ export function App() {
           <Route path="/c/:token">
             {({ token }) => <CandidateNominate token={token} />}
           </Route>
+          <Route path="/candidate/:token">
+            {({ token }) => <CandidateNominate token={token} />}
+          </Route>
+          <Route path="/nominate/:token">
+            {({ token }) => <CandidateNominate token={token} />}
+          </Route>
           
           <Route path="/c/:token/substitute">
             {({ token }) => <CandidateSubstitute token={token} />}
           </Route>
+          <Route path="/candidate/:token/substitute">
+            {({ token }) => <CandidateSubstitute token={token} />}
+          </Route>
           
           <Route path="/r/:token">
+            {({ token }) => <RefereeForm token={token} />}
+          </Route>
+          <Route path="/referee/:token">
+            {({ token }) => <RefereeForm token={token} />}
+          </Route>
+          <Route path="/verify/:token">
+            {({ token }) => <RefereeForm token={token} />}
+          </Route>
+          <Route path="/reference/:token">
             {({ token }) => <RefereeForm token={token} />}
           </Route>
 
