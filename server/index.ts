@@ -582,7 +582,13 @@ app.get("/api/candidates/:id", authMiddleware as any, async (req: AuthenticatedR
               fraudFlagDetails: latestResponse.fraudFlagDetails || "{}",
               overallRating: latestResponse.overallRating,
               wordCountTotal: latestResponse.wordCountTotal,
-              answersJson: latestResponse.answersJson
+              answersJson: latestResponse.answersJson,
+              completionMethod: latestResponse.completionMethod || ref.completionMethod || "digital",
+              conductedBy: latestResponse.conductedBy || ref.conductedBy || "",
+              phoneCallDate: latestResponse.phoneCallDate || ref.phoneCallDate || "",
+              phoneCalledNumber: latestResponse.phoneCalledNumber || ref.phoneCalledNumber || "",
+              verbalConsentConfirmed: latestResponse.verbalConsentConfirmed ?? ref.verbalConsentConfirmed,
+              interviewerNotes: latestResponse.interviewerNotes || ref.interviewerNotes || ""
             };
           }
         }
@@ -700,7 +706,13 @@ app.get("/api/candidates/:id/report", authMiddleware as any, async (req: Authent
                 wordCountTotal: latestResponse.wordCountTotal,
                 fraudFlags: latestResponse.fraudFlags || "",
                 fraudFlagDetails: latestResponse.fraudFlagDetails || "{}",
-                submittedAt: latestResponse.submittedAt
+                submittedAt: latestResponse.submittedAt,
+                completionMethod: latestResponse.completionMethod || ref.completionMethod || "digital",
+                conductedBy: latestResponse.conductedBy || ref.conductedBy || "",
+                phoneCallDate: latestResponse.phoneCallDate || ref.phoneCallDate || "",
+                phoneCalledNumber: latestResponse.phoneCalledNumber || ref.phoneCalledNumber || "",
+                verbalConsentConfirmed: latestResponse.verbalConsentConfirmed ?? ref.verbalConsentConfirmed ?? false,
+                interviewerNotes: latestResponse.interviewerNotes || ref.interviewerNotes || ""
               }
             };
           }
@@ -1046,15 +1058,22 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text("-", 380, summaryY + 20, { width: 80 });
       drawStatusPill(doc, 380, summaryY + 30, "NO INFO PROVIDED", "warning");
 
-      // Column 5: IP Address & Shared Status
-      drawPill(doc, 470, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
-      const ip = ref.response?.ipAddress || "127.0.0.1";
-      doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 470, summaryY + 20, { width: 65, ellipsis: true });
-      const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
-      if (isSharedIp) {
-        drawStatusPill(doc, 470, summaryY + 30, "SHARED IP ADDRESS", "warning");
+      // Column 5: IP Address & Shared Status (or Phone Verification)
+      const isPhoneCompletion = ref.completionMethod === "phone" || ref.response?.completionMethod === "phone";
+      if (isPhoneCompletion) {
+        drawPill(doc, 470, summaryY + 6, "METHOD", "#F3F4F6", "#4B5563");
+        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica-Bold").text("Phone Call", 470, summaryY + 20, { width: 65, ellipsis: true });
+        drawStatusPill(doc, 470, summaryY + 30, "PHONE VERIFIED", "success");
       } else {
-        drawStatusPill(doc, 470, summaryY + 30, "UNIQUE IP ADDRESS", "success");
+        drawPill(doc, 470, summaryY + 6, "IP ADDRESS", "#F3F4F6", "#4B5563");
+        const ip = ref.response?.ipAddress || "127.0.0.1";
+        doc.fillColor("#1A1F2C").fontSize(8).font("Helvetica").text(ip, 470, summaryY + 20, { width: 65, ellipsis: true });
+        const isSharedIp = candidate.candidateSubmissionIp && candidate.candidateSubmissionIp === ip;
+        if (isSharedIp) {
+          drawStatusPill(doc, 470, summaryY + 30, "SHARED IP ADDRESS", "warning");
+        } else {
+          drawStatusPill(doc, 470, summaryY + 30, "UNIQUE IP ADDRESS", "success");
+        }
       }
 
       summaryY += 55;
@@ -1888,6 +1907,203 @@ app.patch("/api/referees/:id/reassign", authMiddleware as any, requireRole(["Adm
     return res.status(200).json({ success: true, newReferee: { ...newReferee, formStatus: "Sent" } });
   } catch (err: any) {
     console.error("Referee reassignment route error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+});
+
+// --- Phone Reference Interview API Endpoints ---
+
+// Fetch referee & candidate details plus questionnaire questions for recruiter phone interview
+app.get("/api/referees/:id/phone-details", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  try {
+    const referee = await airtableService.getReferee(id);
+    if (!referee) {
+      return res.status(404).json({ success: false, error: "Referee not found" });
+    }
+
+    const candidateId = Array.isArray(referee.candidate) ? referee.candidate[0] : referee.candidate;
+    const candidate = await airtableService.getCandidate(candidateId);
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: "Candidate associated with referee not found" });
+    }
+
+    // Scoping check for Recruiter role
+    if (req.user!.role === "Recruiter") {
+      const creatorId = Array.isArray(candidate.createdBy) ? candidate.createdBy[0] : candidate.createdBy;
+      if (creatorId && creatorId !== req.user!.userId) {
+        return res.status(403).json({ success: false, error: "Access Denied: Not authorized to conduct phone reference for this candidate" });
+      }
+    }
+
+    // Resolve assigned template from referee.referenceType (falling back to candidate.assignedPackage)
+    const templateName = referee.referenceType || candidate.assignedPackage;
+    const template = await airtableService.getQuestionnaireTemplateByName(templateName);
+    if (!template) {
+      return res.status(404).json({ success: false, error: "Assigned questionnaire template not found" });
+    }
+
+    const questions = typeof template.Questions_JSON === "string" ? JSON.parse(template.Questions_JSON) : (template.Questions_JSON || []);
+    const branchingRules = typeof template.Branching_Rules_JSON === "string" ? JSON.parse(template.Branching_Rules_JSON) : (template.Branching_Rules_JSON || []);
+
+    return res.status(200).json({
+      success: true,
+      referee: {
+        id: referee.id,
+        fullName: referee.fullName,
+        email: referee.email,
+        phone: referee.phone,
+        relationship: referee.relationship,
+        employerName: referee.employerName,
+        jobTitle: referee.jobTitle,
+        formStatus: referee.formStatus,
+        answersJson: referee.answersJson || "[]",
+        referenceType: referee.referenceType || candidate.assignedPackage,
+        completionMethod: referee.completionMethod,
+        conductedBy: referee.conductedBy,
+        phoneCallDate: referee.phoneCallDate,
+        phoneCalledNumber: referee.phoneCalledNumber,
+        verbalConsentConfirmed: referee.verbalConsentConfirmed,
+        interviewerNotes: referee.interviewerNotes
+      },
+      candidate: {
+        id: candidate.id,
+        fullName: candidate.fullName,
+        roleAppliedFor: candidate.roleAppliedFor,
+        employerName: candidate.employerName,
+        assignedPackage: candidate.assignedPackage
+      },
+      questions,
+      branchingRules
+    });
+  } catch (err: any) {
+    console.error(`[Referee Phone Details Error] id: ${id}:`, err);
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+});
+
+// Submit manual reference completed over the phone by a recruiter
+app.post("/api/referees/:id/phone-complete", authMiddleware as any, requireRole(["Admin", "Recruiter"]) as any, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  const { 
+    answersJson, 
+    phoneCalledNumber, 
+    verbalConsentConfirmed = true, 
+    interviewerNotes = "", 
+    callDurationSeconds = 0 
+  } = req.body;
+
+  try {
+    const referee = await airtableService.getReferee(id);
+    if (!referee) {
+      return res.status(404).json({ success: false, error: "Referee not found" });
+    }
+
+    const candidateId = Array.isArray(referee.candidate) ? referee.candidate[0] : referee.candidate;
+    const candidate = await airtableService.getCandidate(candidateId);
+    if (!candidate) {
+      return res.status(404).json({ success: false, error: "Candidate not found" });
+    }
+
+    // Scoping check for Recruiter role
+    if (req.user!.role === "Recruiter") {
+      const creatorId = Array.isArray(candidate.createdBy) ? candidate.createdBy[0] : candidate.createdBy;
+      if (creatorId && creatorId !== req.user!.userId) {
+        return res.status(403).json({ success: false, error: "Access Denied: Not authorized to complete reference for this candidate" });
+      }
+    }
+
+    // Final submission processing
+    const answers = JSON.parse(answersJson || "[]");
+    
+    let ratingSum = 0;
+    let ratingCount = 0;
+    let textWords = 0;
+
+    answers.forEach((ans: any) => {
+      if (ans.type === "rating" && typeof ans.value === "number") {
+        ratingSum += ans.value;
+        ratingCount++;
+      }
+      if ((ans.type === "short_text" || ans.type === "long_text") && typeof ans.value === "string") {
+        textWords += ans.value.split(/\s+/).filter(Boolean).length;
+      }
+    });
+
+    const overallRating = ratingCount > 0 ? Number((ratingSum / ratingCount).toFixed(1)) : 5.0;
+    const conductedByEmail = req.user?.email || "Recruiter";
+    const phoneDate = new Date().toISOString();
+    const dialedPhone = phoneCalledNumber || referee.phone;
+
+    // Create Referee Response record with Phone completion method
+    await airtableService.createRefereeResponse({
+      refereeId: id,
+      answersJson,
+      overallRating,
+      wordCountTotal: textWords,
+      ipAddress: "Phone Interview",
+      fraudFlags: "",
+      fraudFlagDetails: JSON.stringify({
+        method: "phone_interview",
+        conductedBy: conductedByEmail,
+        phoneCalledNumber: dialedPhone,
+        callDurationSeconds: Number(callDurationSeconds) || 0,
+        verbalConsentConfirmed: Boolean(verbalConsentConfirmed)
+      }),
+      completionMethod: "phone",
+      conductedBy: conductedByEmail,
+      phoneCallDate: phoneDate,
+      phoneCalledNumber: dialedPhone,
+      verbalConsentConfirmed: Boolean(verbalConsentConfirmed),
+      interviewerNotes: String(interviewerNotes || "")
+    });
+
+    // Update Referee record status
+    await airtableService.updateRefereeFields(id, {
+      formStatus: "Complete",
+      formCompletedAt: phoneDate,
+      submissionDurationSeconds: Number(callDurationSeconds) || 0,
+      submissionIpAddress: "Phone Interview",
+      completionMethod: "phone",
+      conductedBy: conductedByEmail,
+      phoneCallDate: phoneDate,
+      phoneCalledNumber: dialedPhone,
+      verbalConsentConfirmed: Boolean(verbalConsentConfirmed),
+      interviewerNotes: String(interviewerNotes || "")
+    });
+
+    // Resolve Candidate overall check status
+    const refereesList = await airtableService.getRefereesForCandidate(candidateId);
+    const allCompleted = refereesList.every((r: any) => r.id === id || r.formStatus === "Complete");
+    
+    // Check if ANY completed response has fraud flags
+    let anyFraudFlagged = false;
+    for (const r of refereesList) {
+      if (r.id !== id && r.formStatus === "Complete") {
+        const resp = await airtableService.getResponsesForReferee(r.id);
+        if (resp && resp.some((res: any) => res.fraudFlags && res.fraudFlags.trim() !== "")) {
+          anyFraudFlagged = true;
+          break;
+        }
+      }
+    }
+
+    let newStatus = "In Progress";
+    if (anyFraudFlagged) {
+      newStatus = "Flagged";
+    } else if (allCompleted) {
+      newStatus = "Complete";
+    }
+    
+    await airtableService.updateCandidateStatus(candidateId, newStatus);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Phone reference completed and verified successfully.", 
+      allCompleted 
+    });
+  } catch (err: any) {
+    console.error("Phone reference submission error:", err);
     return res.status(500).json({ success: false, error: err.message || "Server Error" });
   }
 });

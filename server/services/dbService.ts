@@ -1603,6 +1603,12 @@ export const dbService = {
     ipAddress?: string;
     fraudFlags?: string;
     fraudFlagDetails?: string;
+    completionMethod?: string;
+    conductedBy?: string;
+    phoneCallDate?: string;
+    phoneCalledNumber?: string;
+    verbalConsentConfirmed?: boolean;
+    interviewerNotes?: string;
   }) => {
     const fields: any = {
       referee: [data.refereeId],
@@ -1614,6 +1620,12 @@ export const dbService = {
     };
     if (data.fraudFlags !== undefined) fields.fraudFlags = data.fraudFlags;
     if (data.fraudFlagDetails !== undefined) fields.fraudFlagDetails = data.fraudFlagDetails;
+    if (data.completionMethod !== undefined) fields.completionMethod = data.completionMethod;
+    if (data.conductedBy !== undefined) fields.conductedBy = data.conductedBy;
+    if (data.phoneCallDate !== undefined) fields.phoneCallDate = data.phoneCallDate;
+    if (data.phoneCalledNumber !== undefined) fields.phoneCalledNumber = data.phoneCalledNumber;
+    if (data.verbalConsentConfirmed !== undefined) fields.verbalConsentConfirmed = data.verbalConsentConfirmed;
+    if (data.interviewerNotes !== undefined) fields.interviewerNotes = data.interviewerNotes;
 
     if (isMock) {
       const id = `rec_res_${Date.now()}`;
