@@ -10,7 +10,7 @@ initRefCheckDb().catch(e => console.error("DB init error:", e));
 
 const BASE58_ALPHABET = "23456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
 
-export function generateShortToken(length = 8): string {
+export function generateShortToken(length = 6): string {
   const bytes = crypto.randomBytes(length);
   let result = "";
   for (let i = 0; i < length; i++) {
