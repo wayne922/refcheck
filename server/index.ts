@@ -92,7 +92,7 @@ const getRecruiterEmail = async (candidate: any): Promise<string> => {
       }
     }
   }
-  return "wayne@refcheck.tech"; // Default fallback
+  return "team@candidex.co.nz"; // Default fallback
 };
 
 
@@ -938,7 +938,7 @@ app.post("/api/reports/:id/export", authMiddleware as any, async (req: Authentic
       d.restore();
       
       d.fillColor("#7E22CE").fontSize(9).font("Helvetica-Bold").text("RefCheck", 332, 33);
-      d.fillColor("#70757A").fontSize(6).font("Helvetica").text("team@refcheck.tech  |  refcheck.tech", 320, 48);
+      d.fillColor("#70757A").fontSize(6).font("Helvetica").text("compliance@candidex.co.nz  |  Candidex RefCheck", 320, 48);
 
       // 2. ISO seal badge
       drawISOBadge(d, 465, 20);
