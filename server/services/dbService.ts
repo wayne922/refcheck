@@ -46,17 +46,51 @@ function matchesFormula(fields: Record<string, any>, formula: string): boolean {
   return true;
 }
 
-// Helper to build compatible record object
-function formatPgRecord(id: string, fields: any, createdTime?: any) {
-  let parsedFields = fields;
-  while (typeof parsedFields === "string") {
+// Helper to recursively unwrap JSON fields and heal any corrupted spread strings
+function unwrapFields(f: any): any {
+  let parsed = f;
+  while (typeof parsed === "string") {
     try {
-      parsedFields = JSON.parse(parsedFields);
+      parsed = JSON.parse(parsed);
     } catch {
       break;
     }
   }
-  parsedFields = parsedFields || {};
+
+  if (typeof parsed === "object" && parsed !== null) {
+    if ("0" in parsed && "1" in parsed) {
+      const keys = Object.keys(parsed)
+        .filter(k => /^\d+$/.test(k))
+        .map(Number)
+        .sort((a, b) => a - b);
+      
+      let str = "";
+      for (const k of keys) {
+        str += parsed[k];
+      }
+
+      try {
+        let inner = JSON.parse(str);
+        while (typeof inner === "string") {
+          inner = JSON.parse(inner);
+        }
+        for (const [k, v] of Object.entries(parsed)) {
+          if (!/^\d+$/.test(k)) {
+            inner[k] = v;
+          }
+        }
+        return inner;
+      } catch (e) {
+        console.error("Failed to parse reconstructed string in unwrapFields:", e);
+      }
+    }
+  }
+  return parsed;
+}
+
+// Helper to build compatible record object
+function formatPgRecord(id: string, fields: any, createdTime?: any) {
+  const parsedFields = unwrapFields(fields) || {};
   const time = createdTime ? new Date(createdTime).toISOString() : new Date().toISOString();
   return {
     id,
@@ -117,18 +151,11 @@ const pgBase = (tableName: string) => {
 
       for (const item of items) {
         let fields = item.fields || item;
-        while (typeof fields === "string") {
-          try {
-            fields = JSON.parse(fields);
-          } catch {
-            break;
-          }
-        }
-        fields = fields || {};
+        fields = unwrapFields(fields) || {};
         const id = generateRecordId("rec");
         await sql`
           INSERT INTO refcheck_records (id, table_name, fields, updated_time)
-          VALUES (${id}, ${tableName}, ${JSON.stringify(fields)}, NOW())
+          VALUES (${id}, ${tableName}, ${sql.json(fields)}, NOW())
           ON CONFLICT (id) DO UPDATE SET fields = EXCLUDED.fields, updated_time = NOW();
         `;
         created.push(formatPgRecord(id, fields));
@@ -141,32 +168,15 @@ const pgBase = (tableName: string) => {
       const existing = await sql`
         SELECT fields, created_time FROM refcheck_records WHERE id = ${id} AND table_name = ${tableName} LIMIT 1;
       `;
-      let currentFields = existing.length > 0 ? existing[0].fields : {};
-      while (typeof currentFields === "string") {
-        try {
-          currentFields = JSON.parse(currentFields);
-        } catch {
-          break;
-        }
-      }
-      currentFields = currentFields || {};
-
-      let updateFields = fields;
-      while (typeof updateFields === "string") {
-        try {
-          updateFields = JSON.parse(updateFields);
-        } catch {
-          break;
-        }
-      }
-      updateFields = updateFields || {};
+      const currentFields = existing.length > 0 ? (unwrapFields(existing[0].fields) || {}) : {};
+      const updateFields = unwrapFields(fields) || {};
 
       const createdTime = existing.length > 0 ? existing[0].created_time : new Date();
       const mergedFields = { ...currentFields, ...updateFields };
 
       await sql`
         UPDATE refcheck_records 
-        SET fields = ${JSON.stringify(mergedFields)}, updated_time = NOW()
+        SET fields = ${sql.json(mergedFields)}, updated_time = NOW()
         WHERE id = ${id} AND table_name = ${tableName};
       `;
       return formatPgRecord(id, mergedFields, createdTime);

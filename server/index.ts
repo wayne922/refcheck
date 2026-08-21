@@ -243,9 +243,9 @@ app.get("/api/employers/me", authMiddleware as any, async (req: AuthenticatedReq
   }
 });
 
-// Fetch all Candidates with pagination, filtering, sorting, and role scoping
+// Fetch all Candidates with pagination, filtering, sorting, search, and role scoping
 app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedRequest, res) => {
-  const { page, limit, status, createdBy, dateFrom, dateTo, sortBy, sortOrder } = req.query;
+  const { page, limit, status, search, createdBy, dateFrom, dateTo, sortBy, sortOrder } = req.query;
   
   try {
     let candidates;
@@ -275,6 +275,11 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
         
         return {
           ...c,
+          fullName: c.fullName || "Unnamed Candidate",
+          email: c.email || "",
+          roleAppliedFor: c.roleAppliedFor || "Unspecified Role",
+          assignedPackage: c.assignedPackage || "ECE / Character (2 References)",
+          createdAt: c.createdAt || new Date().toISOString(),
           refereeCount,
           completedRefereeCount,
           status: candStatus
@@ -282,9 +287,27 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       })
     );
 
+    // Apply Search
+    if (search && typeof search === "string" && search.trim()) {
+      const q = (search as string).toLowerCase().trim();
+      candidatesWithCounts = candidatesWithCounts.filter((c: any) => 
+        (c.fullName && c.fullName.toLowerCase().includes(q)) ||
+        (c.roleAppliedFor && c.roleAppliedFor.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q))
+      );
+    }
+
     // Apply Filters
     if (status && status !== "All") {
-      candidatesWithCounts = candidatesWithCounts.filter((c: any) => c.status === status);
+      candidatesWithCounts = candidatesWithCounts.filter((c: any) => {
+        const s = (c.status || "").toLowerCase();
+        const filterLower = (status as string).toLowerCase();
+        if (filterLower === "flagged") return s === "flagged";
+        if (filterLower === "complete") return s === "complete";
+        if (filterLower === "in progress") return s === "in progress" || s === "referees submitted";
+        if (filterLower === "candidate sent" || filterLower === "invitation sent") return s.includes("sent") || s.includes("not started") || s.includes("nomination");
+        return s === filterLower;
+      });
     }
     if (createdBy && createdBy !== "All") {
       candidatesWithCounts = candidatesWithCounts.filter((c: any) => {
@@ -310,7 +333,7 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       let valB = b[sortByField] || "";
 
       if (sortByField === "createdAt") {
-        return (new Date(valA).getTime() - new Date(valB).getTime()) * order;
+        return (new Date(valA || 0).getTime() - new Date(valB || 0).getTime()) * order;
       }
 
       if (typeof valA === "string") valA = valA.toLowerCase();
@@ -322,8 +345,8 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
     });
 
     // Apply Pagination
-    const pageNum = parseInt(page as string) || 1;
-    const limitNum = parseInt(limit as string) || 10;
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.max(1, parseInt(limit as string) || 10);
     const total = candidatesWithCounts.length;
     const startIndex = (pageNum - 1) * limitNum;
     const paginatedCandidates = candidatesWithCounts.slice(startIndex, startIndex + limitNum);

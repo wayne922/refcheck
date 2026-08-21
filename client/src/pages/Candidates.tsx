@@ -208,6 +208,9 @@ export function Candidates({ auth }: CandidatesProps) {
         sortOrder,
         createdBy: recruiterFilter
       });
+      if (searchTerm.trim()) {
+        queryParams.append("search", searchTerm.trim());
+      }
       if (dateFrom) queryParams.append("dateFrom", dateFrom);
       if (dateTo) queryParams.append("dateTo", dateTo);
 
@@ -285,7 +288,7 @@ export function Candidates({ auth }: CandidatesProps) {
 
   useEffect(() => {
     fetchCandidates();
-  }, [auth, page, statusFilter, showFlaggedOnly, recruiterFilter, dateFrom, dateTo, sortBy, sortOrder]);
+  }, [auth, page, searchTerm, statusFilter, showFlaggedOnly, recruiterFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
   const handleCreateCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -508,14 +511,7 @@ export function Candidates({ auth }: CandidatesProps) {
     return elapsedDays >= 6;
   };
 
-  const filteredCandidates = candidates.filter(cand => {
-    const matchesSearch = cand.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          cand.roleAppliedFor.toLowerCase().includes(searchTerm.toLowerCase());
-    const status = cand.status || cand.overallStatus || "Not Started";
-    const matchesFilter = statusFilter === "All" || status === statusFilter;
-    const matchesFlagged = !showFlaggedOnly || status === "Flagged";
-    return matchesSearch && matchesFilter && matchesFlagged;
-  });
+  const displayCandidates = candidates;
 
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto w-full relative min-h-screen">
@@ -563,9 +559,12 @@ export function Candidates({ auth }: CandidatesProps) {
             <Search className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search candidates by name or role..."
+              placeholder="Search candidates by name, email, or role..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1);
+              }}
               className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -762,9 +761,15 @@ export function Candidates({ auth }: CandidatesProps) {
                     </td>
                   </tr>
                 ))
-              ) : filteredCandidates.length > 0 ? (
-                filteredCandidates.map((cand) => {
+              ) : displayCandidates.length > 0 ? (
+                displayCandidates.map((cand) => {
                   const status = cand.status || cand.overallStatus || "Not Started";
+                  const candName = cand.fullName || "Unnamed Candidate";
+                  const candRole = cand.roleAppliedFor || "Unspecified Role";
+                  const candEmail = cand.email || "";
+                  const candPackage = cand.assignedPackage || "ECE / Character (2 References)";
+                  const candDate = cand.createdAt ? cand.createdAt.split("T")[0] : "-";
+                  
                   return (
                     <tr 
                       key={cand.id} 
@@ -777,33 +782,35 @@ export function Candidates({ auth }: CandidatesProps) {
                             {(Array.isArray(cand.createdBy) && cand.createdBy.includes("rec_usr_1")) || cand.createdBy === "rec_usr_1" ? "WS" : "RC"}
                           </div>
                           <div>
-                            <div className="font-semibold text-foreground">{cand.fullName}</div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <Mail className="w-3.5 h-3.5 text-muted-foreground/50" />
-                              <a 
-                                href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(cand.email)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-primary hover:underline"
-                              >
-                                {cand.email}
-                              </a>
-                            </div>
+                            <div className="font-semibold text-foreground">{candName}</div>
+                            {candEmail ? (
+                              <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                                <Mail className="w-3.5 h-3.5 text-muted-foreground/50" />
+                                <a 
+                                  href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(candEmail)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-primary hover:underline"
+                                >
+                                  {candEmail}
+                                </a>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-muted-foreground font-medium">
                         <div className="flex items-center gap-2">
                           <Briefcase className="w-4 h-4 text-muted-foreground/60" />
-                          {cand.roleAppliedFor}
+                          {candRole}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground">{cand.assignedPackage}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{candPackage}</td>
                       <td className="px-6 py-4">
                         {renderStatusStage(status)}
                       </td>
-                      <td className="px-6 py-4 text-muted-foreground text-xs">{cand.createdAt.split("T")[0]}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{candDate}</td>
                       <td className="px-6 py-4 text-right">
                         <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:text-primary transition-colors inline" />
                       </td>
@@ -827,14 +834,17 @@ export function Candidates({ auth }: CandidatesProps) {
             <span className="font-semibold text-foreground">{Math.min(page * limit, total)}</span> of{' '}
             <span className="font-semibold text-foreground">{total}</span> candidates
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setPage(p => Math.max(p - 1, 1))}
-              disabled={page === 1}
+              disabled={page <= 1}
               className="px-3 py-1.5 border border-border bg-card hover:bg-secondary disabled:opacity-50 disabled:pointer-events-none rounded-lg text-xs font-semibold transition-all cursor-pointer"
             >
               Previous
             </button>
+            <span className="text-xs font-semibold px-2 text-muted-foreground">
+              Page {page} of {Math.max(1, Math.ceil(total / limit))}
+            </span>
             <button
               onClick={() => setPage(p => (p * limit < total ? p + 1 : p))}
               disabled={page * limit >= total}
