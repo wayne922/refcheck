@@ -690,6 +690,9 @@ export function Candidates({ auth }: CandidatesProps) {
                 >
                   <option value="All">All Recruiters</option>
                   <option value="rec_usr_1">Wayne Sullivan</option>
+                  <option value="recrp9IY8bcgYEiDL">Jenna Robinson</option>
+                  <option value="rec8U9MwzddJ6fllz">Chris White</option>
+                  <option value="recfcKzR7SSgUeP9I">Marvin Smith</option>
                 </select>
               </div>
             )}
@@ -779,7 +782,9 @@ export function Candidates({ auth }: CandidatesProps) {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 flex-shrink-0">
-                            {(Array.isArray(cand.createdBy) && cand.createdBy.includes("rec_usr_1")) || cand.createdBy === "rec_usr_1" ? "WS" : "RC"}
+                            {(Array.isArray(cand.createdBy) && cand.createdBy.includes("recrp9IY8bcgYEiDL")) || cand.createdBy === "recrp9IY8bcgYEiDL" ? "JR" :
+                             (Array.isArray(cand.createdBy) && cand.createdBy.includes("rec8U9MwzddJ6fllz")) || cand.createdBy === "rec8U9MwzddJ6fllz" ? "CW" :
+                             (Array.isArray(cand.createdBy) && (cand.createdBy.includes("rec_usr_1") || cand.createdBy.includes("rechrOqutKxF0iqTW"))) || cand.createdBy === "rec_usr_1" || cand.createdBy === "rechrOqutKxF0iqTW" ? "WS" : "RC"}
                           </div>
                           <div>
                             <div className="font-semibold text-foreground">{candName}</div>
