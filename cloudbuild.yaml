@@ -1,0 +1,33 @@
+steps:
+  # 1. Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:latest', '-t', 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:$BUILD_ID', '.']
+
+  # 2. Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:latest']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:$BUILD_ID']
+
+  # 3. Deploy to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'refcheck'
+      - '--image=australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:latest'
+      - '--region=australia-southeast1'
+      - '--platform=managed'
+      - '--port=8080'
+      - '--allow-unauthenticated'
+      - '--min-instances=1'
+      - '--max-instances=2'
+      - '--memory=512Mi'
+      - '--set-env-vars=NODE_ENV=production,JWT_SECRET=default_refcheck_secret_key_123456'
+
+images:
+  - 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:latest'
+  - 'australia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/refcheck:$BUILD_ID'
+
+timeout: '900s'
