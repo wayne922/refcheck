@@ -127,9 +127,37 @@ export function Candidates({ auth }: CandidatesProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showFlaggedOnly, setShowFlaggedOnly] = useState(false);
+  const [recruiters, setRecruiters] = useState<{ id: string; fullName: string; email: string }[]>([]);
   
+  // Debounce search input to prevent rapid firing and race conditions
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Fetch active recruiters for filter dropdown
+  useEffect(() => {
+    if (auth.token) {
+      fetch("/api/recruiters", {
+        headers: {
+          "Authorization": `Bearer ${auth.token}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && Array.isArray(data.recruiters)) {
+            setRecruiters(data.recruiters);
+          }
+        })
+        .catch(err => console.error("Error fetching recruiters:", err));
+    }
+  }, [auth.token]);
+
   // Sprint 7: Pagination, Sorting & Filtering states
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -208,8 +236,8 @@ export function Candidates({ auth }: CandidatesProps) {
         sortOrder,
         createdBy: recruiterFilter
       });
-      if (searchTerm.trim()) {
-        queryParams.append("search", searchTerm.trim());
+      if (debouncedSearch.trim()) {
+        queryParams.append("search", debouncedSearch.trim());
       }
       if (dateFrom) queryParams.append("dateFrom", dateFrom);
       if (dateTo) queryParams.append("dateTo", dateTo);
@@ -288,7 +316,7 @@ export function Candidates({ auth }: CandidatesProps) {
 
   useEffect(() => {
     fetchCandidates();
-  }, [auth, page, searchTerm, statusFilter, showFlaggedOnly, recruiterFilter, dateFrom, dateTo, sortBy, sortOrder]);
+  }, [auth, page, debouncedSearch, statusFilter, showFlaggedOnly, recruiterFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
   const handleCreateCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -559,14 +587,27 @@ export function Candidates({ auth }: CandidatesProps) {
             <Search className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search candidates by name, email, or role..."
+              placeholder="Search candidate name, phonetic spelling (e.g. Penolopie), email, role, phone, or referee..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full pl-11 pr-10 py-3 bg-card border border-border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/60"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPage(1);
+                }}
+                className="absolute right-3.5 top-3 p-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-secondary/80 transition-colors"
+                title="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -582,6 +623,23 @@ export function Candidates({ auth }: CandidatesProps) {
             <span className={`transition-transform duration-300 ${showAdvancedFilters ? "rotate-180" : ""}`}>↓</span>
           </button>
         </div>
+
+        {/* Active Search & Filter Indicators */}
+        {searchTerm.trim() && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
+            <span>Found <strong className="text-foreground">{total}</strong> candidate{total === 1 ? "" : "s"} matching <span className="text-primary font-semibold">"{searchTerm}"</span></span>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setPage(1);
+              }}
+              className="text-xs text-muted-foreground hover:text-destructive underline ml-2 cursor-pointer"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
 
         {/* Collapsible Advanced Filters Accordion */}
         <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
@@ -689,10 +747,9 @@ export function Candidates({ auth }: CandidatesProps) {
                   className="bg-card border border-border px-3 py-1.5 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 font-semibold text-foreground"
                 >
                   <option value="All">All Recruiters</option>
-                  <option value="rec_usr_1">Wayne Sullivan</option>
-                  <option value="recrp9IY8bcgYEiDL">Jenna Robinson</option>
-                  <option value="rec8U9MwzddJ6fllz">Chris White</option>
-                  <option value="recfcKzR7SSgUeP9I">Marvin Smith</option>
+                  {recruiters.map((r) => (
+                    <option key={r.id} value={r.id}>{r.fullName || r.email}</option>
+                  ))}
                 </select>
               </div>
             )}

@@ -5,6 +5,7 @@ import helmet from "helmet";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { dbService, dbService as airtableService, generateShortToken } from "./services/dbService.ts";
+import { matchCandidate } from "./services/searchService.ts";
 import { serveStatic } from "./static.ts";
 import { emailService, emailLogs } from "./services/email.ts";
 import { smsService } from "./services/sms.ts";
@@ -265,7 +266,7 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       }
     }
 
-    // Populate referee counts and default status fields
+    // Populate referee counts, referee list, and default status fields
     let candidatesWithCounts = await Promise.all(
       candidates.map(async (c: any) => {
         const referees = await airtableService.getRefereesForCandidate(c.id);
@@ -275,11 +276,13 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
         
         return {
           ...c,
-          fullName: c.fullName || "Unnamed Candidate",
-          email: c.email || "",
-          roleAppliedFor: c.roleAppliedFor || "Unspecified Role",
+          fullName: (c.fullName || "").trim() || "Unnamed Candidate",
+          email: (c.email || "").trim(),
+          phone: (c.phone || "").trim(),
+          roleAppliedFor: (c.roleAppliedFor || "").trim() || "Unspecified Role",
           assignedPackage: c.assignedPackage || "ECE / Character (2 References)",
           createdAt: c.createdAt || new Date().toISOString(),
+          referees,
           refereeCount,
           completedRefereeCount,
           status: candStatus
@@ -287,14 +290,18 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       })
     );
 
-    // Apply Search
+    // Apply Multi-field, Phonetic & Fuzzy Search
+    let searchActive = false;
     if (search && typeof search === "string" && search.trim()) {
-      const q = (search as string).toLowerCase().trim();
-      candidatesWithCounts = candidatesWithCounts.filter((c: any) => 
-        (c.fullName && c.fullName.toLowerCase().includes(q)) ||
-        (c.roleAppliedFor && c.roleAppliedFor.toLowerCase().includes(q)) ||
-        (c.email && c.email.toLowerCase().includes(q))
-      );
+      searchActive = true;
+      const scoredCandidates: any[] = [];
+      for (const c of candidatesWithCounts) {
+        const { matches, score } = matchCandidate(c, search as string);
+        if (matches) {
+          scoredCandidates.push({ ...c, _searchScore: score });
+        }
+      }
+      candidatesWithCounts = scoredCandidates;
     }
 
     // Apply Filters
@@ -324,11 +331,16 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       candidatesWithCounts = candidatesWithCounts.filter((c: any) => new Date(c.createdAt).getTime() <= toTime);
     }
 
-    // Apply Sorting
+    // Apply Sorting (Prioritize Search Relevance Score when searching by default)
     const sortByField = (sortBy || "createdAt") as string;
     const order = (sortOrder || "desc") === "desc" ? -1 : 1;
 
     candidatesWithCounts.sort((a: any, b: any) => {
+      if (searchActive && sortByField === "createdAt" && order === -1) {
+        const scoreDiff = (b._searchScore || 0) - (a._searchScore || 0);
+        if (scoreDiff !== 0) return scoreDiff;
+      }
+
       let valA = a[sortByField] || "";
       let valB = b[sortByField] || "";
 
@@ -358,6 +370,29 @@ app.get("/api/candidates", authMiddleware as any, async (req: AuthenticatedReque
       page: pageNum,
       limit: limitNum
     });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || "Server Error" });
+  }
+});
+
+// Fetch active recruiters for filter dropdown
+app.get("/api/recruiters", authMiddleware as any, async (req: AuthenticatedRequest, res) => {
+  try {
+    let users;
+    if (req.user!.role === "Admin") {
+      users = await airtableService.getUsers();
+    } else {
+      users = await airtableService.getUsers(req.user!.employerId);
+    }
+    const recruiters = (users || [])
+      .filter((u: any) => u.isActive !== false)
+      .map((u: any) => ({
+        id: u.id,
+        fullName: u.fullName || u.email,
+        email: u.email,
+        role: u.role || "Recruiter"
+      }));
+    return res.status(200).json({ success: true, recruiters });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message || "Server Error" });
   }

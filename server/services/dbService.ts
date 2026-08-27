@@ -1060,6 +1060,28 @@ export const dbService = {
     }
   },
 
+  getUsers: async (employerId?: string) => {
+    if (isMock) {
+      if (!employerId) return mockDb.users;
+      return mockDb.users.filter((u: any) => u.employer && u.employer.includes(employerId));
+    }
+    try {
+      const records = await base("Users").select().all();
+      const mapped = records.map((r: any) => ({ id: r.id, createdAt: r._rawJson.createdTime || new Date().toISOString(), ...r.fields }));
+      if (employerId) {
+        return mapped.filter((u: any) => {
+          if (!u.employer) return false;
+          if (Array.isArray(u.employer)) return u.employer.includes(employerId);
+          return u.employer === employerId;
+        });
+      }
+      return mapped;
+    } catch (err) {
+      console.error(`Airtable error fetching users:`, err);
+      throw err;
+    }
+  },
+
   createUser: async (data: { fullName: string; email: string; googleSsoId: string; employerId: string; role?: string }) => {
     if (isMock) {
       const newId = `rec_usr_${Date.now()}`;
