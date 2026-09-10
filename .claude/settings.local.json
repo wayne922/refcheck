@@ -85,5 +85,10 @@
         ]
       }
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "AgentsRoom-MCP",
+    "AgentsRoom-Test-Runner",
+    "AgentsRoom-QA-Tester"
+  ]
 }
