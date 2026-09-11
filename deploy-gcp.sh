@@ -14,7 +14,10 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-echo "📦 Building and deploying directly via Cloud Run source deploy..."
+echo "🔍 Step 1: Running TypeScript verification check & production build..."
+npm run build
+
+echo "📦 Step 2: Building and deploying container to Cloud Run..."
 CLOUDSDK_METRICS_ENVIRONMENT=datacloud.antigravity gcloud run deploy $SERVICE_NAME \
   --source . \
   --project $PROJECT_ID \
