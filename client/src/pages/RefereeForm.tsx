@@ -57,10 +57,6 @@ export function RefereeForm({ token }: RefereeFormProps) {
   const [success, setSuccess] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  // Time tracker for duration fraud check
-  const startTimeRef = useRef<number>(Date.now());
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   useEffect(() => {
     const fetchRefereeDetails = async () => {
       setLoading(true);
@@ -95,30 +91,65 @@ export function RefereeForm({ token }: RefereeFormProps) {
     fetchRefereeDetails();
   }, [token]);
 
-  // Set up 30-second Auto-save timer
+  // Time tracker for duration fraud check
+  const startTimeRef = useRef<number>(Date.now());
+  const answersRef = useRef<Record<string, any>>({});
+  const questionsRef = useRef<Question[]>([]);
+  const refereeInfoRef = useRef<any>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    if (refereeInfo && step === 2 && !success) {
-      autoSaveTimerRef.current = setInterval(() => {
-        triggerAutoSave();
-      }, 30000);
-    }
-    return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+    answersRef.current = answers;
+  }, [answers]);
+
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
+
+  useEffect(() => {
+    refereeInfoRef.current = refereeInfo;
+  }, [refereeInfo]);
+
+  // Warn referee before closing tab if answers have been entered but not submitted
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (step === 2 && !success && Object.keys(answersRef.current).length > 0) {
+        e.preventDefault();
+        e.returnValue = "You have unsubmitted reference check responses. Are you sure you want to exit?";
+        return e.returnValue;
+      }
     };
-  }, [refereeInfo, step, answers, success]);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [step, success]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
 
   const triggerAutoSave = async () => {
-    if (!refereeInfo) return;
+    const currentRef = refereeInfoRef.current;
+    if (!currentRef) return;
     
-    const answersPayload = questions.map(q => ({
+    const currentQuestions = questionsRef.current;
+    const currentAnswers = answersRef.current;
+
+    // Only save if at least one question has an answer
+    const hasAnyAnswer = Object.values(currentAnswers).some(val => val !== undefined && val !== "");
+    if (!hasAnyAnswer) return;
+
+    const answersPayload = currentQuestions.map(q => ({
       id: q.id,
       type: q.type,
-      value: answers[q.id] || ""
+      value: currentAnswers[q.id] || ""
     }));
 
     setAutoSaveStatus("saving");
     try {
-      await fetch(`/api/referees/${refereeInfo.id}/response`, {
+      await fetch(`/api/referees/${currentRef.id}/response`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -128,7 +159,9 @@ export function RefereeForm({ token }: RefereeFormProps) {
       });
       console.log("[Auto-save] Progress saved successfully.");
       setAutoSaveStatus("saved");
-      setTimeout(() => setAutoSaveStatus("idle"), 3000);
+      setTimeout(() => {
+        setAutoSaveStatus(prev => (prev === "saved" ? "idle" : prev));
+      }, 4000);
     } catch (err) {
       console.warn("Auto-save failed in background", err);
       setAutoSaveStatus("error");
@@ -136,7 +169,19 @@ export function RefereeForm({ token }: RefereeFormProps) {
   };
 
   const handleUpdateAnswer = (questionId: string, value: any) => {
-    setAnswers({ ...answers, [questionId]: value });
+    setAnswers(prev => {
+      const updated = { ...prev, [questionId]: value };
+      answersRef.current = updated;
+      return updated;
+    });
+
+    // Debounce auto-save: saves 2.5s after the referee stops typing
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      triggerAutoSave();
+    }, 2500);
   };
 
   const handleNextStep = () => {
@@ -217,7 +262,7 @@ export function RefereeForm({ token }: RefereeFormProps) {
         throw new Error(data.error || "Failed to submit questionnaire");
       }
       setSuccess(true);
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     } catch (err: any) {
       setError(err.message || "An error occurred during submission.");
     } finally {
@@ -343,29 +388,48 @@ export function RefereeForm({ token }: RefereeFormProps) {
               </span>
             </div>
 
-            {/* Progress Bar & Auto-Save Indicator */}
-            <div className="bg-secondary/40 border border-border rounded-xl p-4 space-y-2 mb-6 animate-fade-in sticky top-2 z-20 backdrop-blur-md shadow-xs">
-              <div className="flex justify-between items-center text-xs font-bold text-muted-foreground">
+            {/* Progress Bar, Auto-Save Indicator & Sticky Submit Action */}
+            <div className="bg-card/95 border border-border rounded-xl p-4 space-y-2.5 mb-6 animate-fade-in sticky top-2 z-20 backdrop-blur-md shadow-md">
+              <div className="flex justify-between items-center text-xs font-bold text-muted-foreground flex-wrap gap-2">
                 <span>Progress: {progressPercentage}% Complete ({answeredCount}/{visibleQuestions.length} answered)</span>
                 
-                {autoSaveStatus === "saving" && (
-                  <span className="flex items-center gap-1.5 text-blue-600 font-bold uppercase tracking-wider text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
-                    Saving progress...
-                  </span>
-                )}
-                {(autoSaveStatus === "saved" || autoSaveStatus === "idle") && (
-                  <span className="flex items-center gap-1.5 text-emerald-600 font-bold uppercase tracking-wider text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Auto-saved to server
-                  </span>
-                )}
-                {autoSaveStatus === "error" && (
-                  <span className="flex items-center gap-1.5 text-red-600 font-bold uppercase tracking-wider text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-bounce"></span>
-                    Auto-save failed
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {autoSaveStatus === "saving" && (
+                    <span className="flex items-center gap-1.5 text-blue-600 font-bold uppercase tracking-wider text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
+                      Saving draft...
+                    </span>
+                  )}
+                  {autoSaveStatus === "saved" && (
+                    <span className="flex items-center gap-1.5 text-emerald-600 font-bold uppercase tracking-wider text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Draft auto-saved
+                    </span>
+                  )}
+                  {autoSaveStatus === "error" && (
+                    <span className="flex items-center gap-1.5 text-red-600 font-bold uppercase tracking-wider text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-bounce"></span>
+                      Auto-save failed
+                    </span>
+                  )}
+                  {autoSaveStatus === "idle" && (
+                    <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider text-[10px]">
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      Not yet submitted
+                    </span>
+                  )}
+
+                  {progressPercentage === 100 && (
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-3.5 py-1.5 bg-primary text-primary-foreground font-bold rounded-lg text-xs hover:opacity-90 shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all"
+                    >
+                      {submitting ? "Submitting..." : "Submit Now"}
+                      <Check className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="w-full bg-secondary rounded-full h-2 overflow-hidden border border-border">
                 <div 
@@ -373,6 +437,13 @@ export function RefereeForm({ token }: RefereeFormProps) {
                   style={{ width: `${progressPercentage}%` }}
                 ></div>
               </div>
+
+              {progressPercentage === 100 && (
+                <div className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold text-center pt-1.5 border-t border-border/60 flex items-center justify-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  <span>All questions answered! Click <strong>"Submit Now"</strong> or the button at the bottom to finalize your reference.</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -471,6 +542,18 @@ export function RefereeForm({ token }: RefereeFormProps) {
                   );
                 })}
             </div>
+
+            {progressPercentage === 100 && (
+              <div className="bg-primary/10 border border-primary/30 p-4 rounded-xl flex items-center gap-3 animate-fade-in">
+                <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0">
+                  <Check className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">All Questions Answered</h4>
+                  <p className="text-[11px] text-muted-foreground">Please click the button below to complete and submit your official reference.</p>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4 border-t border-border pt-6">
               <button

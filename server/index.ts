@@ -1753,9 +1753,10 @@ app.post("/api/referees/:id/response", async (req, res) => {
       return res.status(404).json({ success: false, error: "Candidate not found" });
     }
 
-    // Resolve assigned template from candidate assignedPackage
-    const template = await airtableService.getQuestionnaireTemplateByName(candidate.assignedPackage);
-    const questions = template ? JSON.parse(template.Questions_JSON) : [];
+    // Resolve assigned template from referee.referenceType (falling back to candidate.assignedPackage)
+    const templateName = referee.referenceType || candidate.assignedPackage;
+    const template = await airtableService.getQuestionnaireTemplateByName(templateName);
+    const questions = template ? (typeof template.Questions_JSON === "string" ? JSON.parse(template.Questions_JSON) : (template.Questions_JSON || [])) : [];
 
     const duration = Number(submissionDurationSeconds) || 120;
     const refereeSubmissionIp = ipAddress || req.ip || "127.0.0.1";
