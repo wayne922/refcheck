@@ -35,7 +35,7 @@ const createRefereeEmailHtml = (refereeName: string, candidateName: string, empl
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
   <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
     <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;">
-      <span style="font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.5px;">CANDIDEX</span>
+      <span style="font-size: 18px; font-weight: 800; color: #1E3A8A; letter-spacing: -0.5px;">CANDIDEX</span>
       <span style="font-size: 11px; font-weight: 600; color: #64748b; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Compliance Vetting</span>
     </div>
     
@@ -53,7 +53,7 @@ const createRefereeEmailHtml = (refereeName: string, candidateName: string, empl
     </p>
     
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${inviteUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 4px rgba(99, 102, 241, 0.25);">
+      <a href="${inviteUrl}" style="background-color: #1E3A8A; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);">
         Complete Reference Check (3-5 mins) &rarr;
       </a>
     </div>
@@ -64,7 +64,7 @@ const createRefereeEmailHtml = (refereeName: string, candidateName: string, empl
 
     <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-bottom: 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
       If the button above doesn't work, open this link directly:<br>
-      <a href="${inviteUrl}" style="color: #6366f1; text-decoration: underline; word-break: break-all;">${inviteUrl}</a>
+      <a href="${inviteUrl}" style="color: #1E3A8A; text-decoration: underline; word-break: break-all;">${inviteUrl}</a>
     </p>
   </div>
   <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #94a3b8;">
@@ -85,7 +85,7 @@ const createCandidateEmailHtml = (candidateName: string, employerName: string, i
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
   <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
     <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;">
-      <span style="font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.5px;">CANDIDEX</span>
+      <span style="font-size: 18px; font-weight: 800; color: #1E3A8A; letter-spacing: -0.5px;">CANDIDEX</span>
       <span style="font-size: 11px; font-weight: 600; color: #64748b; margin-left: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Candidate Portal</span>
     </div>
     
@@ -100,14 +100,14 @@ const createCandidateEmailHtml = (candidateName: string, employerName: string, i
     </p>
     
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${inviteUrl}" style="background-color: #6366f1; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 4px rgba(99, 102, 241, 0.25);">
+      <a href="${inviteUrl}" style="background-color: #1E3A8A; color: #ffffff; padding: 14px 28px; font-size: 15px; font-weight: 600; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);">
         Nominate Referees (2-3 mins) &rarr;
       </a>
     </div>
 
     <p style="font-size: 11px; color: #94a3b8; line-height: 1.5; margin-bottom: 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
       If the button above doesn't work, open this link directly:<br>
-      <a href="${inviteUrl}" style="color: #6366f1; text-decoration: underline; word-break: break-all;">${inviteUrl}</a>
+      <a href="${inviteUrl}" style="color: #1E3A8A; text-decoration: underline; word-break: break-all;">${inviteUrl}</a>
     </p>
   </div>
   <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #94a3b8;">
