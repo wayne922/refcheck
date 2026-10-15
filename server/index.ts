@@ -116,9 +116,13 @@ app.get("/api/health", (_req, res) => {
 
 // App configuration (returns Google Client ID if configured)
 app.get("/api/config", (_req, res) => {
+  const rawAppUrl = process.env.APP_URL || "https://refcheck-577231129915.australia-southeast1.run.app";
+  const canonicalAppUrl = rawAppUrl.includes("bx6vloyj4a")
+    ? "https://refcheck-577231129915.australia-southeast1.run.app"
+    : rawAppUrl;
   res.status(200).json({
-    googleClientId: process.env.GOOGLE_CLIENT_ID || null,
-    appUrl: process.env.APP_URL || "https://refcheck-577231129915.australia-southeast1.run.app"
+    googleClientId: process.env.GOOGLE_CLIENT_ID || "878276169719-6gbsd8rocvjmq7dr143lejvhb59e4lgq.apps.googleusercontent.com",
+    appUrl: canonicalAppUrl
   });
 });
 
@@ -2716,6 +2720,14 @@ app.get("/api/v1/references", async (req, res) => {
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Return JSON 404 for any unmatched /api/* routes (prevent SPA HTML catch-all from returning 200 text/html)
+app.use("/api", (req, res) => {
+  return res.status(404).json({
+    success: false,
+    error: `API endpoint not found: ${req.method} ${req.originalUrl}`
+  });
 });
 
 // Express Server Bootstrap
