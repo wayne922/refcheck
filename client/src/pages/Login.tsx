@@ -138,79 +138,80 @@ export function Login({ onLogin }: LoginProps) {
           </div>
         )}
 
-        {googleClientId ? (
+        {googleClientId && (
           <div className="flex flex-col items-center w-full mb-6">
             <div id="google-signin-button" className="w-full flex justify-center"></div>
             {loading && <p className="text-xs text-muted-foreground mt-2 animate-pulse">Authenticating with Google...</p>}
-          </div>
-        ) : (
-          <div className="space-y-3 mb-6">
-            <button
-              onClick={() => handleQuickLogin("jenna@candidex.co.nz", "Jenna Robinson")}
-              disabled={loading}
-              className="flex items-center justify-center gap-3 w-full py-3 border border-primary/30 bg-primary/5 hover:bg-primary/10 rounded-xl text-sm font-semibold text-primary transition-all shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <Chrome className="w-5 h-5 text-primary" />
-              {loading ? "Authenticating..." : "Sign in as Jenna Robinson"}
-            </button>
-            <button
-              onClick={() => handleQuickLogin("wayne@candidex.co.nz", "Wayne Sullivan")}
-              disabled={loading}
-              className="flex items-center justify-center gap-3 w-full py-3 border border-border bg-card hover:bg-secondary rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
-            >
-              <Chrome className="w-5 h-5 text-primary" />
-              {loading ? "Authenticating..." : "Sign in as Wayne Sullivan"}
-            </button>
-          </div>
-        )}
-
-        {!googleClientId && (
-          <>
-            <div className="relative flex py-3 items-center mb-6">
+            <div className="relative flex py-3 items-center w-full my-2">
               <div className="flex-grow border-t border-border"></div>
-              <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Sign In by Email</span>
+              <span className="flex-shrink mx-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Or Fast Sign-In</span>
               <div className="flex-grow border-t border-border"></div>
             </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g. jenna@candidex.co.nz"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-                  Company Name (Optional for Candidex)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Candidex Recruitment"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  disabled={loading}
-                  className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90 shadow-md shadow-primary/10 transition-all cursor-pointer disabled:opacity-50"
-              >
-                {loading ? "Signing in..." : "Continue to Workspace"}
-              </button>
-            </form>
-          </>
+          </div>
         )}
+
+        <div className="space-y-3 mb-6">
+          <button
+            onClick={() => handleQuickLogin("jenna@candidex.co.nz", "Jenna Robinson")}
+            disabled={loading}
+            className="flex items-center justify-center gap-3 w-full py-3.5 border border-border bg-foreground text-background hover:opacity-90 rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <Chrome className="w-5 h-5" />
+            {loading ? "Authenticating..." : "Sign in as Jenna Robinson"}
+          </button>
+          <button
+            onClick={() => handleQuickLogin("wayne@candidex.co.nz", "Wayne Sullivan")}
+            disabled={loading}
+            className="flex items-center justify-center gap-3 w-full py-3.5 border border-border bg-card hover:bg-secondary rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <Chrome className="w-5 h-5 text-primary" />
+            {loading ? "Authenticating..." : "Sign in as Wayne Sullivan"}
+          </button>
+        </div>
+
+        <div className="relative flex py-3 items-center mb-6">
+          <div className="flex-grow border-t border-border"></div>
+          <span className="flex-shrink mx-4 text-xs font-semibold text-muted-foreground uppercase">Or Sign In by Email</span>
+          <div className="flex-grow border-t border-border"></div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. jenna@candidex.co.nz"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              Company Name (Optional for Candidex)
+            </label>
+            <input
+              type="text"
+              placeholder="Candidex Recruitment"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              disabled={loading}
+              className="w-full px-4 py-2.5 bg-secondary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-secondary hover:bg-secondary/80 border border-border text-foreground font-semibold rounded-xl text-sm transition-all cursor-pointer disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Continue to Workspace"}
+          </button>
+        </form>
 
         <p className="text-center text-[10px] text-muted-foreground mt-8">
           RefCheck • NZ & AU Compliance Safeguarded

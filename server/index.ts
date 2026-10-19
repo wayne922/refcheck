@@ -121,7 +121,7 @@ app.get("/api/config", (_req, res) => {
     ? "https://refcheck-577231129915.australia-southeast1.run.app"
     : rawAppUrl;
   res.status(200).json({
-    googleClientId: process.env.GOOGLE_CLIENT_ID || "878276169719-6gbsd8rocvjmq7dr143lejvhb59e4lgq.apps.googleusercontent.com",
+    googleClientId: process.env.GOOGLE_CLIENT_ID || null,
     appUrl: canonicalAppUrl
   });
 });
