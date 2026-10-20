@@ -64,20 +64,45 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
         }
         setCandidateInfo(data.candidate);
 
-        if (data.candidate?.assignedPackage) {
-          const pkg = data.candidate.assignedPackage;
-          if (pkg.includes("1")) {
-            setReferees([
-              { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false }
-            ]);
-          } else if (pkg.includes("3")) {
-            setReferees([
-              { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
-              { fullName: "", email: "", phone: "", relationship: "Peer / Senior Teacher", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
-              { fullName: "", email: "", phone: "", relationship: "Character Referee", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false }
-            ]);
+        const pkg = data.candidate?.assignedPackage || "";
+        let targetCount = 2;
+        if (pkg.includes("1")) targetCount = 1;
+        else if (pkg.includes("3")) targetCount = 3;
+        else if (pkg.includes("4")) targetCount = 4;
+
+        const defaultTemplates: RefereeInput[] = [
+          { fullName: "", email: "", phone: "", relationship: "Manager", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
+          { fullName: "", email: "", phone: "", relationship: "Peer / Senior Teacher", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Early Childhood / ECE", useDateRange: false },
+          { fullName: "", email: "", phone: "", relationship: "Character Referee", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false },
+          { fullName: "", email: "", phone: "", relationship: "Colleague", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false }
+        ];
+
+        // Merge any existing referees already on file (e.g. if re-nominating or adding missing referees)
+        const existing = data.existingReferees || [];
+        const initialReferees: RefereeInput[] = [];
+
+        for (let i = 0; i < targetCount; i++) {
+          if (existing[i]) {
+            initialReferees.push({
+              fullName: existing[i].fullName || "",
+              email: existing[i].email || "",
+              phone: existing[i].phone || "",
+              relationship: existing[i].relationship || defaultTemplates[i]?.relationship || "Manager",
+              employerName: existing[i].employerName || "",
+              jobTitle: existing[i].jobTitle || "",
+              datesFrom: existing[i].datesFrom || "",
+              datesTo: existing[i].datesTo || "",
+              referenceType: existing[i].referenceType || defaultTemplates[i]?.referenceType || "Early Childhood / ECE",
+              useDateRange: false
+            });
+          } else {
+            initialReferees.push(defaultTemplates[i] || {
+              fullName: "", email: "", phone: "", relationship: "Character Referee", employerName: "", jobTitle: "", datesFrom: "", datesTo: "", referenceType: "Character Reference", useDateRange: false
+            });
           }
         }
+
+        setReferees(initialReferees);
       } catch (err: any) {
         setError(err.message || "Invalid or expired onboarding link.");
       } finally {
@@ -212,7 +237,7 @@ export function CandidateNominate({ token }: CandidateNominateProps) {
               <h2 className="text-xl font-bold font-display text-foreground">Welcome, {candidateInfo?.fullName}</h2>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 To support your application for the role of <strong className="text-foreground">{candidateInfo?.roleAppliedFor}</strong>, 
-                please authorize this check and nominate at least two professional referees below.
+                please authorize this check and nominate your {referees.length} professional referee{referees.length > 1 ? "s" : ""} below.
               </p>
             </div>
 

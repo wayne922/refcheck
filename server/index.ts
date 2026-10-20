@@ -607,14 +607,28 @@ app.get("/api/candidates/by-token/:token", async (req, res) => {
       candidate.candidateSubmissionIp = ipAddress; // Keep in-memory sync
     }
 
+    const existingReferees = await airtableService.getRefereesForCandidate(candidate.id);
     return res.status(200).json({
       success: true,
       candidate: {
         id: candidate.id,
         fullName: candidate.fullName,
         roleAppliedFor: candidate.roleAppliedFor,
-        employerName: candidate.employerName
-      }
+        employerName: candidate.employerName,
+        assignedPackage: candidate.assignedPackage
+      },
+      existingReferees: existingReferees.map((r: any) => ({
+        fullName: r.fullName,
+        email: r.email,
+        phone: r.phone,
+        relationship: r.relationship,
+        employerName: r.employerName,
+        jobTitle: r.jobTitle,
+        datesFrom: r.datesFrom,
+        datesTo: r.datesTo,
+        referenceType: r.referenceType,
+        formStatus: r.formStatus
+      }))
     });
   } catch (err: any) {
     return res.status(403).json({ success: false, error: "Link expired or invalid" });
