@@ -1736,6 +1736,10 @@ app.post("/api/referees/:id/response", async (req, res) => {
     }
 
     if (!isSubmit) {
+      // Never let a late-arriving auto-save overwrite an already-submitted reference back to "In Progress"
+      if (referee.formStatus === "Complete" || referee.formCompletedAt) {
+        return res.status(200).json({ success: true, message: "Reference already completed" });
+      }
       // Auto-save partial progress
       await airtableService.updateRefereeFields(id, {
         formStatus: "In Progress",
